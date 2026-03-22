@@ -16,17 +16,30 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
   const [busqueda, setBusqueda] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Reservation | null>(null);
+  const [sortKey, setSortKey] = useState<"startDate" | "title" | "city" | "priceUSD" | "status">("startDate");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  function handleSort(key: typeof sortKey) {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  }
 
   const tcEurUsd = Number(config.tcEurUsd ?? 1.08);
   const tcArsMep = Number(config.tcArsMep ?? 1200);
 
   const filtered = useMemo(() => {
+    const dir = sortDir === "asc" ? 1 : -1;
     return reservations
       .filter((r) => !filtroType || r.type === filtroType)
       .filter((r) => !filtroStatus || r.status === filtroStatus)
       .filter((r) => !busqueda || r.title.toLowerCase().includes(busqueda.toLowerCase()))
-      .sort((a, b) => a.startDate.localeCompare(b.startDate));
-  }, [reservations, filtroType, filtroStatus, busqueda]);
+      .sort((a, b) => {
+        const av = a[sortKey] ?? "";
+        const bv = b[sortKey] ?? "";
+        if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+        return String(av).localeCompare(String(bv)) * dir;
+      });
+  }, [reservations, filtroType, filtroStatus, busqueda, sortKey, sortDir]);
 
   const totalUSD = filtered.reduce((s, r) => s + r.priceUSD, 0);
 
@@ -106,12 +119,36 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
         <table className="w-full text-sm">
           <thead className="bg-white/30 border-b border-white/20">
             <tr>
-              <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Reserva</th>
-              <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Ciudad</th>
-              <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Fechas</th>
+              {(
+                [
+                  { key: "title",     label: "Reserva", align: "left"  },
+                  { key: "city",      label: "Ciudad",  align: "left"  },
+                  { key: "startDate", label: "Fechas",  align: "left"  },
+                ] as { key: typeof sortKey; label: string; align: string }[]
+              ).map(({ key, label, align }) => {
+                const active = sortKey === key;
+                return (
+                  <th key={key} className={`px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider text-${align}`}>
+                    <button onClick={() => handleSort(key)} className={`flex items-center gap-1 hover:text-c-text transition-colors ${active ? "text-c-text" : ""}`}>
+                      {label}
+                      <span className="text-[9px]">{active ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
+                    </button>
+                  </th>
+                );
+              })}
               <th className="text-right px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Costo</th>
-              <th className="text-right px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">USD</th>
-              <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Estado</th>
+              <th className="text-right px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">
+                <button onClick={() => handleSort("priceUSD")} className={`flex items-center gap-1 ml-auto hover:text-c-text transition-colors ${sortKey === "priceUSD" ? "text-c-text" : ""}`}>
+                  USD
+                  <span className="text-[9px]">{sortKey === "priceUSD" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
+                </button>
+              </th>
+              <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">
+                <button onClick={() => handleSort("status")} className={`flex items-center gap-1 hover:text-c-text transition-colors ${sortKey === "status" ? "text-c-text" : ""}`}>
+                  Estado
+                  <span className="text-[9px]">{sortKey === "status" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
+                </button>
+              </th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
