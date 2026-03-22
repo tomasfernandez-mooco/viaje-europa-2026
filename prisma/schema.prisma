@@ -15,8 +15,10 @@ model Trip {
   startDate  String
   endDate    String
   coverImage String?
+  userId     String?
   createdAt  DateTime @default(now())
 
+  user           User?           @relation(fields: [userId], references: [id])
   reservations   Reservation[]
   itineraryItems ItineraryItem[]
   checklistItems ChecklistItem[]
@@ -36,6 +38,8 @@ model User {
   avatar    String?
   role      String   @default("traveler")
   createdAt DateTime @default(now())
+
+  trips Trip[]
 
   @@map("users")
 }

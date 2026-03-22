@@ -1,27 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+
+async function canAccessTrip(tripId: string, userId: string, role: string) {
+  if (role === "admin") return true;
+  const trip = await prisma.trip.findUnique({ where: { id: tripId }, select: { userId: true } });
+  return trip?.userId === userId || trip?.userId === null;
+}
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ tripId: string }> }
 ) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+
   try {
     const { tripId } = await params;
-    const trip = await prisma.trip.findUnique({
-      where: { id: tripId },
-    });
-    if (!trip) {
-      return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+    if (!await canAccessTrip(tripId, user.id, user.role)) {
+      return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
     }
+    const trip = await prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
     return NextResponse.json(trip);
   } catch (error) {
     console.error("Error fetching trip:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch trip" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch trip" }, { status: 500 });
   }
 }
 
@@ -29,20 +35,22 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ tripId: string }> }
 ) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+
   try {
     const { tripId } = await params;
+    if (!await canAccessTrip(tripId, user.id, user.role)) {
+      return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
+    }
     const body = await request.json();
-    const trip = await prisma.trip.update({
-      where: { id: tripId },
-      data: body,
-    });
+    // Prevent changing userId
+    delete body.userId;
+    const trip = await prisma.trip.update({ where: { id: tripId }, data: body });
     return NextResponse.json(trip);
   } catch (error) {
     console.error("Error updating trip:", error);
-    return NextResponse.json(
-      { error: "Failed to update trip" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to update trip" }, { status: 500 });
   }
 }
 
@@ -50,9 +58,14 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ tripId: string }> }
 ) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+
   try {
     const { tripId } = await params;
-    // Delete all related data first
+    if (!await canAccessTrip(tripId, user.id, user.role)) {
+      return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
+    }
     await prisma.$transaction([
       prisma.reservation.deleteMany({ where: { tripId } }),
       prisma.itineraryItem.deleteMany({ where: { tripId } }),
@@ -65,9 +78,6 @@ export async function DELETE(
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Error deleting trip:", error);
-    return NextResponse.json(
-      { error: "Failed to delete trip" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to delete trip" }, { status: 500 });
   }
 }

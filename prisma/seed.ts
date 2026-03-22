@@ -17,7 +17,7 @@ async function main() {
 
   // ─── USERS ──────────────────────────────────────────
   console.log("Creating users...");
-  await prisma.user.create({
+  const tomas = await prisma.user.create({
     data: {
       id: uuid(),
       email: "tomas@europa2026.com",
@@ -49,6 +49,7 @@ async function main() {
       startDate: "2026-07-08",
       endDate: "2026-07-31",
       coverImage: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=1200&q=80",
+      userId: tomas.id,
     },
   });
 

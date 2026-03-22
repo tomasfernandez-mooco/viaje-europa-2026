@@ -36,6 +36,9 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
   const { theme, toggle } = useTheme();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: userName, avatar: "" });
+  const [profileSaving, setProfileSaving] = useState(false);
 
   const base = `/trips/${tripId}`;
   const navItems = [
@@ -196,23 +199,100 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
             </button>
           </div>
 
+          {/* Admin link */}
+          {userRole === "admin" && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-1.5 text-[11px] text-slate-600 hover:text-slate-400 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Admin
+            </Link>
+          )}
+
           {/* User */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 bg-accent rounded-full flex items-center justify-center text-white text-xs font-semibold ring-2 ring-accent/20 ring-offset-1 ring-offset-slate-950 shrink-0">
-                {userName.charAt(0).toUpperCase()}
+            <button
+              onClick={() => setProfileOpen(true)}
+              className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition-opacity"
+              title="Editar perfil"
+            >
+              <div className="w-7 h-7 bg-accent rounded-full flex items-center justify-center text-white text-xs font-semibold ring-2 ring-accent/20 ring-offset-1 ring-offset-slate-950 shrink-0 overflow-hidden">
+                {profileForm.avatar
+                  ? <img src={profileForm.avatar} alt={userName} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  : userName.charAt(0).toUpperCase()
+                }
               </div>
-              <div>
-                <p className="text-xs font-medium text-slate-300 leading-tight">{userName}</p>
+              <div className="text-left min-w-0">
+                <p className="text-xs font-medium text-slate-300 leading-tight truncate">{userName}</p>
                 <p className="text-[10px] text-slate-600 capitalize">{userRole}</p>
               </div>
-            </div>
-            <button onClick={logout} className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors">
+            </button>
+            <button onClick={logout} className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors shrink-0">
               Salir
             </button>
           </div>
         </div>
       </aside>
+
+      {/* Profile edit modal */}
+      {profileOpen && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade">
+          <div className="glass-card-solid rounded-2xl shadow-glass-lg w-full max-w-sm">
+            <div className="px-5 py-4 border-b border-white/15 flex justify-between items-center">
+              <h2 className="text-base font-display font-semibold text-stone-800">Editar perfil</h2>
+              <button onClick={() => setProfileOpen(false)} className="text-stone-400 hover:text-stone-600 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/40 transition-colors">&times;</button>
+            </div>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setProfileSaving(true);
+                await fetch("/api/auth/me", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(profileForm),
+                });
+                setProfileSaving(false);
+                setProfileOpen(false);
+                window.location.reload();
+              }}
+              className="p-5 space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-medium text-stone-500 mb-1">Nombre</label>
+                <input
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, name: e.target.value }))}
+                  className="glass-input"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-stone-500 mb-1">Avatar (URL de imagen)</label>
+                <input
+                  value={profileForm.avatar}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, avatar: e.target.value }))}
+                  placeholder="https://..."
+                  className="glass-input"
+                />
+                {profileForm.avatar && (
+                  <img src={profileForm.avatar} alt="preview" className="mt-2 w-12 h-12 rounded-full object-cover border border-white/20" />
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={() => setProfileOpen(false)} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700 rounded-xl hover:bg-white/40 transition-colors">Cancelar</button>
+                <button type="submit" disabled={profileSaving} className="px-5 py-2 text-sm bg-accent text-white rounded-xl hover:bg-terra-500 font-medium transition-all disabled:opacity-60">
+                  {profileSaving ? "Guardando..." : "Guardar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl border-t border-white/[0.06] z-50 flex justify-around px-2 py-2 safe-area-pb">
