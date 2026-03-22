@@ -31,6 +31,7 @@ export default function TripCalendarioClient({ tripId, tripName, startDate, endD
   }
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"compact" | "block">("compact");
 
   const itemsByDate: Record<string, ItineraryItem[]> = {};
   items.forEach((item) => {
@@ -70,6 +71,21 @@ export default function TripCalendarioClient({ tripId, tripName, startDate, endD
           <p className="text-sm text-stone-500 mt-1">{items.length} actividades &middot; {reservations.length} reservas</p>
         </div>
         <div className="flex gap-2">
+          {/* View mode toggle */}
+          <div className="glass-card rounded-xl flex overflow-hidden border border-white/20">
+            <button
+              onClick={() => setViewMode("compact")}
+              className={`px-3 py-2 text-xs font-medium transition-colors ${viewMode === "compact" ? "bg-accent text-white" : "text-stone-500 hover:text-stone-700"}`}
+            >
+              Puntos
+            </button>
+            <button
+              onClick={() => setViewMode("block")}
+              className={`px-3 py-2 text-xs font-medium transition-colors ${viewMode === "block" ? "bg-accent text-white" : "text-stone-500 hover:text-stone-700"}`}
+            >
+              Bloques
+            </button>
+          </div>
           <button
             onClick={handleExportICal}
             className="glass-card px-4 py-2 text-xs font-medium rounded-xl hover:bg-white/75 text-stone-700 transition-all"
@@ -129,12 +145,50 @@ export default function TripCalendarioClient({ tripId, tripName, startDate, endD
                   <div className="grid grid-cols-7 gap-0.5">
                     {cells.map((cell, i) => {
                       if (!cell.day || !cell.dateStr) {
-                        return <div key={i} className="aspect-square" />;
+                        return <div key={i} className={viewMode === "block" ? "min-h-[72px]" : "aspect-square"} />;
                       }
                       const isTrip = tripDates.includes(cell.dateStr);
                       const dayItems = itemsByDate[cell.dateStr] ?? [];
                       const isSelected = selectedDate === cell.dateStr;
                       const categories = [...new Set(dayItems.map((it) => it.category))];
+
+                      if (viewMode === "block") {
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => isTrip ? setSelectedDate(cell.dateStr) : undefined}
+                            disabled={!isTrip}
+                            className={`min-h-[72px] rounded-xl p-1.5 flex flex-col items-start text-left text-xs transition-all ${
+                              isSelected
+                                ? "bg-accent/90 text-white ring-2 ring-accent/40 shadow-glass-sm"
+                                : isTrip
+                                  ? "bg-white/40 hover:bg-white/60 text-stone-700 cursor-pointer"
+                                  : "text-stone-300 cursor-default"
+                            }`}
+                          >
+                            <span className={`text-[11px] font-semibold mb-1 ${isSelected ? "text-white" : ""}`}>
+                              {cell.day}
+                            </span>
+                            {dayItems.slice(0, 2).map((item, ei) => (
+                              <span
+                                key={ei}
+                                className={`w-full text-[9px] leading-tight truncate px-1 py-0.5 rounded mb-0.5 ${
+                                  isSelected
+                                    ? "bg-white/20 text-white"
+                                    : getCategoryBlockColor(item.category)
+                                }`}
+                              >
+                                {item.title}
+                              </span>
+                            ))}
+                            {dayItems.length > 2 && (
+                              <span className={`text-[9px] ${isSelected ? "text-white/70" : "text-stone-400"}`}>
+                                +{dayItems.length - 2} más
+                              </span>
+                            )}
+                          </button>
+                        );
+                      }
 
                       return (
                         <button
@@ -270,6 +324,16 @@ function getCategoryDotColor(cat: string): string {
     shopping: "bg-pink-500",
   };
   return map[cat] ?? "bg-stone-400";
+}
+
+function getCategoryBlockColor(cat: string): string {
+  const map: Record<string, string> = {
+    vuelo: "bg-blue-100/80 text-blue-700", alojamiento: "bg-purple-100/80 text-purple-700",
+    transporte: "bg-slate-100/80 text-slate-600", crucero: "bg-cyan-100/80 text-cyan-700",
+    actividad: "bg-green-100/80 text-green-700", comida: "bg-amber-100/80 text-amber-700",
+    shopping: "bg-pink-100/80 text-pink-700",
+  };
+  return map[cat] ?? "bg-zinc-100/80 text-zinc-600";
 }
 
 function getCategoryBarColor(cat: string): string {

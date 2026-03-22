@@ -119,10 +119,20 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
             {filtered.map((r) => (
               <tr key={r.id} className="hover:bg-white/30 transition-colors">
                 <td className="px-4 py-3">
-                  <div>
-                    <p className="font-medium text-stone-800">{r.title}</p>
-                    {r.alert && <p className="text-xs text-amber-600 mt-0.5 line-clamp-1">{r.alert}</p>}
-                    {r.provider && <p className="text-xs text-stone-400">{r.provider}</p>}
+                  <div className="flex items-center gap-2.5">
+                    {r.attachmentUrl && /\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(r.attachmentUrl) && (
+                      <img src={r.attachmentUrl} alt="" className="w-9 h-9 rounded-lg object-cover border border-white/20 shrink-0" />
+                    )}
+                    <div>
+                      <p className="font-medium text-stone-800">{r.title}</p>
+                      {r.alert && <p className="text-xs text-amber-600 mt-0.5 line-clamp-1">{r.alert}</p>}
+                      {r.provider && <p className="text-xs text-stone-400">{r.provider}</p>}
+                      {r.attachmentUrl && !/\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(r.attachmentUrl) && (
+                        <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline">
+                          📎 Adjunto
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-stone-500">{r.city}</td>
@@ -344,6 +354,15 @@ function ReservationModal({
           <div>
             <label className={labelClass}>Notas</label>
             <textarea value={form.notes ?? ""} onChange={(e) => update("notes", e.target.value)} rows={2} className={`${inputClass} resize-none`} />
+          </div>
+
+          <div>
+            <label className={labelClass}>Adjunto (URL de imagen o documento)</label>
+            <input value={form.attachmentUrl ?? ""} onChange={(e) => update("attachmentUrl", e.target.value)}
+              placeholder="https://..." className={inputClass} />
+            {form.attachmentUrl && /\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(form.attachmentUrl) && (
+              <img src={form.attachmentUrl} alt="Adjunto" className="mt-2 h-24 w-auto rounded-xl object-cover border border-white/20" />
+            )}
           </div>
 
           <div>

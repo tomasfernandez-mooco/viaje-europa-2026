@@ -129,6 +129,32 @@ button, a, input, select, textarea {
   background: rgba(100, 116, 139, 0.4);
 }
 
+/* ─── PRINT / PDF EXPORT ────────────────────────────────────── */
+@media print {
+  /* Hide sidebar, nav, and interactive UI */
+  nav, aside, [data-sidebar], .print\\:hidden { display: none !important; }
+  /* Remove page background for clean print */
+  body, body::before { background: white !important; }
+  body { color: #1E293B !important; }
+  /* Make main content take full width */
+  main { width: 100% !important; overflow: visible !important; }
+  .flex.h-screen { display: block !important; }
+  /* Glass cards look clean in print */
+  .glass-card, .glass-card-solid {
+    background: white !important;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+  /* Keep category colors but simplify */
+  [class*="bg-blue-100"], [class*="bg-purple-100"],
+  [class*="bg-green-100"], [class*="bg-amber-100"],
+  [class*="bg-slate-100"], [class*="bg-cyan-100"],
+  [class*="bg-pink-100"] { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* Avoid breaking items across pages */
+  .glass-card { break-inside: avoid; }
+}
+
 /* ─── ANIMATIONS ─────────────────────────────────────────────── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(16px); }

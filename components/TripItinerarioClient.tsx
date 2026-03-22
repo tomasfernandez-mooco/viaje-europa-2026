@@ -68,11 +68,26 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
     } catch (e) { console.error(e); }
   }
 
+  function handleExportPDF() {
+    window.print();
+  }
+
   return (
-    <div className="p-4 md:p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-display font-semibold text-stone-800 tracking-tight">Itinerario</h1>
-        <p className="text-sm text-stone-400 mt-1">{dates.length} dias</p>
+    <div className="p-4 md:p-8 max-w-4xl mx-auto print:p-6 print:max-w-none">
+      <div className="mb-8 flex items-start justify-between print:mb-6">
+        <div>
+          <h1 className="text-2xl font-display font-semibold text-stone-800 tracking-tight">Itinerario</h1>
+          <p className="text-sm text-stone-400 mt-1">{dates.length} dias</p>
+        </div>
+        <button
+          onClick={handleExportPDF}
+          className="print:hidden flex items-center gap-2 glass-card px-4 py-2 text-xs font-medium rounded-xl hover:bg-white/75 text-stone-700 transition-all"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 15.75v3h10.5v-3M6.75 15.75H4.5A2.25 2.25 0 012.25 13.5V9.75A2.25 2.25 0 014.5 7.5h15a2.25 2.25 0 012.25 2.25v3.75a2.25 2.25 0 01-2.25 2.25H17.25M6.75 7.5V4.5h10.5V7.5" />
+          </svg>
+          Exportar PDF
+        </button>
       </div>
 
       <div className="space-y-3">
