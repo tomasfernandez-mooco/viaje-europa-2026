@@ -16,7 +16,14 @@ export default async function TripLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const trip = await prisma.trip.findUnique({ where: { id: params.tripId } });
+  const [trip, allTrips] = await Promise.all([
+    prisma.trip.findUnique({ where: { id: params.tripId } }),
+    prisma.trip.findMany({
+      select: { id: true, name: true, coverImage: true },
+      orderBy: { startDate: "asc" },
+    }),
+  ]);
+
   if (!trip) notFound();
 
   return (
@@ -30,8 +37,9 @@ export default async function TripLayout({
           coverImage={trip.coverImage}
           userRole={user.role}
           userName={user.name}
+          allTrips={allTrips}
         />
-        <main className="flex-1 overflow-y-auto pb-16 md:pb-0 bg-paper">
+        <main className="flex-1 overflow-y-auto pb-16 md:pb-0 bg-paper dark:bg-slate-900 transition-colors duration-300">
           {children}
         </main>
       </div>

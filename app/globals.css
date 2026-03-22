@@ -2,54 +2,141 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── CSS VARIABLES ─────────────────────────────────────────── */
+:root {
+  --color-bg: #F8FAFC;
+  --color-bg-alt: #F1F5F9;
+  --color-text: #1E293B;
+  --color-text-muted: #64748B;
+  --color-glass: rgba(255, 255, 255, 0.60);
+  --color-glass-solid: rgba(255, 255, 255, 0.85);
+  --color-glass-border: rgba(255, 255, 255, 0.20);
+  --color-glass-border-strong: rgba(255, 255, 255, 0.30);
+  --color-scrollbar: rgba(100, 116, 139, 0.25);
+}
+
+.dark {
+  --color-bg: #0F172A;
+  --color-bg-alt: #1E293B;
+  --color-text: #F1F5F9;
+  --color-text-muted: #94A3B8;
+  --color-glass: rgba(255, 255, 255, 0.04);
+  --color-glass-solid: rgba(255, 255, 255, 0.07);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+  --color-glass-border-strong: rgba(255, 255, 255, 0.12);
+  --color-scrollbar: rgba(148, 163, 184, 0.2);
+}
+
+/* ─── BASE ───────────────────────────────────────────────────── */
 @layer base {
   body {
-    background: linear-gradient(145deg, #F7F3EE 0%, #EDE8E1 40%, #F0ECE6 100%);
-    color: #2C2925;
+    background-color: var(--color-bg);
+    color: var(--color-text);
     min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Soft gradient overlay for light mode */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 20% 0%, rgba(99,102,241,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 100%, rgba(99,102,241,0.03) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .dark body::before {
+    background: radial-gradient(ellipse at 20% 0%, rgba(99,102,241,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 100%, rgba(99,102,241,0.06) 0%, transparent 60%);
   }
 }
 
+/* ─── COMPONENTS ─────────────────────────────────────────────── */
 @layer components {
   .glass-card {
-    @apply bg-white/60 backdrop-blur-xl border border-white/20 shadow-glass;
+    background: var(--color-glass);
+    border: 1px solid var(--color-glass-border);
+    @apply backdrop-blur-xl shadow-glass;
   }
   .glass-card-solid {
-    @apply bg-white/80 backdrop-blur-xl border border-white/25 shadow-glass;
+    background: var(--color-glass-solid);
+    border: 1px solid var(--color-glass-border-strong);
+    @apply backdrop-blur-xl shadow-glass;
   }
   .glass-card-hover {
-    @apply hover:bg-white/75 hover:shadow-glass-lg transition-all duration-300;
+    @apply hover:shadow-glass-lg transition-all duration-300;
+  }
+  .glass-card-hover:hover {
+    background: var(--color-glass-solid);
+  }
+
+  /* Glass input */
+  .glass-input {
+    @apply w-full px-4 py-3 rounded-2xl backdrop-blur-sm text-sm;
+    @apply focus:outline-none focus:ring-0;
+    @apply placeholder:text-slate-400;
+    background: var(--color-glass);
+    border: 1px solid var(--color-glass-border-strong);
+    color: var(--color-text);
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .glass-input:focus {
+    background: var(--color-glass-solid);
+    border-color: rgba(99, 102, 241, 0.35);
   }
 }
 
-/* Smooth transitions for interactive elements */
+/* ─── DARK MODE OVERRIDES ────────────────────────────────────── */
+.dark .bg-paper,
+.dark main.bg-paper {
+  background-color: var(--color-bg);
+}
+
+/* Text adjustments for dark mode — stone classes → slate equivalents */
+.dark .text-stone-800,
+.dark .text-stone-900 { color: #F1F5F9; }
+.dark .text-stone-700 { color: #E2E8F0; }
+.dark .text-stone-600 { color: #CBD5E1; }
+.dark .text-stone-500,
+.dark .text-stone-400 { color: #94A3B8; }
+.dark .text-stone-300 { color: #64748B; }
+
+/* Amber alerts — tone down in dark */
+.dark .bg-amber-50\/50 { background: rgba(251,191,36,0.08); }
+.dark .bg-amber-50\/30 { background: rgba(251,191,36,0.05); }
+.dark .bg-red-50\/40   { background: rgba(239,68,68,0.08); }
+.dark .bg-white\/40    { background: rgba(255,255,255,0.04); }
+.dark .bg-white\/20    { background: rgba(255,255,255,0.03); }
+.dark .border-white\/30 { border-color: rgba(255,255,255,0.08); }
+
+/* Smooth theme transition */
+*, *::before, *::after {
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
 button, a, input, select, textarea {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Elegant scrollbar */
-::-webkit-scrollbar {
-  width: 5px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* ─── SCROLLBAR ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(140, 130, 115, 0.3);
+  background: var(--color-scrollbar);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(140, 130, 115, 0.5);
+  background: rgba(100, 116, 139, 0.4);
 }
 
-/* Staggered fade-in */
+/* ─── ANIMATIONS ─────────────────────────────────────────────── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
 .animate-fade-in {
   animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
@@ -58,12 +145,4 @@ button, a, input, select, textarea {
 .animate-fade {
   animation: fadeIn 0.4s ease-out forwards;
   opacity: 0;
-}
-
-/* Glass input */
-.glass-input {
-  @apply w-full px-4 py-3 rounded-2xl bg-white/50 backdrop-blur-sm border border-white/30 text-sm;
-  @apply focus:outline-none focus:bg-white/70 focus:ring-0;
-  &:focus { border-color: rgba(139, 111, 78, 0.3); }
-  @apply placeholder:text-stone-400;
 }

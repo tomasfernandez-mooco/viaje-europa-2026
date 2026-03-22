@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, Playfair_Display } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-body" });
-const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-display" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-body" });
+const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-display" });
 
 export const metadata: Metadata = {
   title: "Travel Planner",
@@ -16,15 +17,13 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body className={`${outfit.variable} ${playfair.variable} font-sans antialiased`}>
-        {children}
+    <html lang="es" suppressHydrationWarning>
+      <body className={`${inter.variable} ${plusJakarta.variable} font-sans antialiased`}>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
