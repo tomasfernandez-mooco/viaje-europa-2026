@@ -4,27 +4,57 @@
 
 /* ─── CSS VARIABLES ─────────────────────────────────────────── */
 :root {
-  --color-bg: #F8FAFC;
-  --color-bg-alt: #F1F5F9;
-  --color-text: #1E293B;
-  --color-text-muted: #64748B;
-  --color-glass: rgba(255, 255, 255, 0.60);
-  --color-glass-solid: rgba(255, 255, 255, 0.85);
+  /* Backgrounds */
+  --color-bg:           #F8FAFC;
+  --color-bg-alt:       #F1F5F9;
+  --color-surface:      #FFFFFF;
+  --color-surface-alt:  #F1F5F9;
+
+  /* Text */
+  --color-heading:      #0F172A;
+  --color-text:         #334155;
+  --color-text-muted:   #64748B;
+  --color-text-subtle:  #94A3B8;
+
+  /* Borders */
+  --color-border:       rgba(15, 23, 42, 0.08);
+  --color-border-strong:rgba(15, 23, 42, 0.14);
+
+  /* Glass system */
+  --color-glass:        rgba(255, 255, 255, 0.60);
+  --color-glass-solid:  rgba(255, 255, 255, 0.85);
   --color-glass-border: rgba(255, 255, 255, 0.20);
   --color-glass-border-strong: rgba(255, 255, 255, 0.30);
-  --color-scrollbar: rgba(100, 116, 139, 0.25);
+
+  /* Scrollbar */
+  --color-scrollbar:    rgba(100, 116, 139, 0.25);
 }
 
 .dark {
-  --color-bg: #0F172A;
-  --color-bg-alt: #1E293B;
-  --color-text: #F1F5F9;
-  --color-text-muted: #94A3B8;
-  --color-glass: rgba(255, 255, 255, 0.04);
-  --color-glass-solid: rgba(255, 255, 255, 0.07);
+  /* Backgrounds */
+  --color-bg:           #0F172A;
+  --color-bg-alt:       #1E293B;
+  --color-surface:      #1E293B;
+  --color-surface-alt:  #293548;
+
+  /* Text */
+  --color-heading:      #F1F5F9;
+  --color-text:         #CBD5E1;
+  --color-text-muted:   #94A3B8;
+  --color-text-subtle:  #475569;
+
+  /* Borders */
+  --color-border:       rgba(255, 255, 255, 0.08);
+  --color-border-strong:rgba(255, 255, 255, 0.13);
+
+  /* Glass system */
+  --color-glass:        rgba(255, 255, 255, 0.04);
+  --color-glass-solid:  rgba(255, 255, 255, 0.07);
   --color-glass-border: rgba(255, 255, 255, 0.08);
   --color-glass-border-strong: rgba(255, 255, 255, 0.12);
-  --color-scrollbar: rgba(148, 163, 184, 0.2);
+
+  /* Scrollbar */
+  --color-scrollbar:    rgba(148, 163, 184, 0.2);
 }
 
 /* ─── BASE ───────────────────────────────────────────────────── */
@@ -36,7 +66,6 @@
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
-  /* Soft gradient overlay for light mode */
   body::before {
     content: "";
     position: fixed;
@@ -71,7 +100,6 @@
     background: var(--color-glass-solid);
   }
 
-  /* Glass input */
   .glass-input {
     @apply w-full px-4 py-3 rounded-2xl backdrop-blur-sm text-sm;
     @apply focus:outline-none focus:ring-0;
@@ -85,38 +113,39 @@
     background: var(--color-glass-solid);
     border-color: rgba(99, 102, 241, 0.35);
   }
+
+  /* Semantic theme-aware utilities */
+  .theme-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    @apply rounded-2xl;
+  }
+  .theme-divider {
+    border-color: var(--color-border);
+  }
 }
 
-/* ─── DARK MODE OVERRIDES ────────────────────────────────────── */
-.dark .bg-paper,
-.dark main.bg-paper {
-  background-color: var(--color-bg);
-}
-
-/* Text adjustments for dark mode — stone classes → slate equivalents */
-.dark .text-stone-800,
-.dark .text-stone-900 { color: #F1F5F9; }
-.dark .text-stone-700 { color: #E2E8F0; }
-.dark .text-stone-600 { color: #CBD5E1; }
-.dark .text-stone-500,
-.dark .text-stone-400 { color: #94A3B8; }
-.dark .text-stone-300 { color: #64748B; }
-
-/* Amber alerts — tone down in dark */
-.dark .bg-amber-50\/50 { background: rgba(251,191,36,0.08); }
-.dark .bg-amber-50\/30 { background: rgba(251,191,36,0.05); }
-.dark .bg-red-50\/40   { background: rgba(239,68,68,0.08); }
-.dark .bg-white\/40    { background: rgba(255,255,255,0.04); }
-.dark .bg-white\/20    { background: rgba(255,255,255,0.03); }
-.dark .border-white\/30 { border-color: rgba(255,255,255,0.08); }
-
-/* Smooth theme transition */
+/* ─── SMOOTH THEME TRANSITION ────────────────────────────────── */
 *, *::before, *::after {
-  transition: background-color 0.25s ease, border-color 0.25s ease;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease;
 }
 button, a, input, select, textarea {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* ─── DARK MODE — STATUS & ALERT COLORS ─────────────────────── */
+/* Amber alerts */
+.dark .bg-amber-50\/70 { background: rgba(251,191,36,0.08) !important; }
+.dark .bg-amber-50\/50 { background: rgba(251,191,36,0.07) !important; }
+.dark .bg-amber-50\/30 { background: rgba(251,191,36,0.05) !important; }
+.dark .bg-amber-100    { background: rgba(251,191,36,0.12) !important; }
+.dark .border-amber-200\/60 { border-color: rgba(251,191,36,0.18) !important; }
+.dark .text-amber-800  { color: #FCD34D !important; }
+.dark .text-amber-700  { color: #FDE68A !important; }
+.dark .text-amber-600  { color: #FDE68A !important; }
+/* Red alerts */
+.dark .bg-red-50\/40   { background: rgba(239,68,68,0.08) !important; }
+.dark .bg-red-100      { background: rgba(239,68,68,0.12) !important; }
 
 /* ─── SCROLLBAR ──────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; }
@@ -131,27 +160,21 @@ button, a, input, select, textarea {
 
 /* ─── PRINT / PDF EXPORT ────────────────────────────────────── */
 @media print {
-  /* Hide sidebar, nav, and interactive UI */
-  nav, aside, [data-sidebar], .print\\:hidden { display: none !important; }
-  /* Remove page background for clean print */
+  nav, aside, [data-sidebar], .print\:hidden { display: none !important; }
   body, body::before { background: white !important; }
   body { color: #1E293B !important; }
-  /* Make main content take full width */
   main { width: 100% !important; overflow: visible !important; }
   .flex.h-screen { display: block !important; }
-  /* Glass cards look clean in print */
   .glass-card, .glass-card-solid {
     background: white !important;
     border: 1px solid #E2E8F0 !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
   }
-  /* Keep category colors but simplify */
   [class*="bg-blue-100"], [class*="bg-purple-100"],
   [class*="bg-green-100"], [class*="bg-amber-100"],
   [class*="bg-slate-100"], [class*="bg-cyan-100"],
   [class*="bg-pink-100"] { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  /* Avoid breaking items across pages */
   .glass-card { break-inside: avoid; }
 }
 

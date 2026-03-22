@@ -84,15 +84,15 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-display text-stone-800 tracking-tight">Checklist</h1>
-        <p className="text-sm text-stone-500 mt-1">{completed.length}/{items.length} completados</p>
+        <h1 className="text-2xl font-display text-c-heading tracking-tight">Checklist</h1>
+        <p className="text-sm text-c-muted mt-1">{completed.length}/{items.length} completados</p>
       </div>
 
       {/* Progress */}
       <div className="glass-card rounded-2xl p-4 mb-5">
         <div className="flex justify-between text-sm mb-2">
-          <span className="font-medium text-stone-700">Progreso general</span>
-          <span className="text-stone-400 font-medium">{items.length > 0 ? Math.round((completed.length / items.length) * 100) : 0}%</span>
+          <span className="font-medium text-c-text">Progreso general</span>
+          <span className="text-c-muted font-medium">{items.length > 0 ? Math.round((completed.length / items.length) * 100) : 0}%</span>
         </div>
         <div className="w-full bg-white/40 rounded-full h-1.5">
           <div className="bg-accent h-1.5 rounded-full transition-all duration-500"
@@ -104,7 +104,7 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
               const catTotal = items.filter((i) => (i.category ?? "general") === cat).length;
               const catDone = items.filter((i) => (i.category ?? "general") === cat && i.completed).length;
               return (
-                <div key={cat} className="flex items-center gap-1.5 text-xs text-stone-500">
+                <div key={cat} className="flex items-center gap-1.5 text-xs text-c-muted">
                   <div className="w-16 h-1 bg-white/40 rounded-full overflow-hidden">
                     <div className="bg-accent h-full rounded-full" style={{ width: `${catTotal > 0 ? (catDone / catTotal) * 100 : 0}%` }} />
                   </div>
@@ -154,7 +154,7 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
         <div className="flex flex-wrap gap-2 mb-5">
           <button
             onClick={() => setActiveFilter("todas")}
-            className={`px-3.5 py-1.5 text-xs font-medium rounded-xl transition-all ${activeFilter === "todas" ? "bg-accent text-white shadow-glass-sm" : "glass-card text-stone-500 hover:text-stone-700"}`}
+            className={`px-3.5 py-1.5 text-xs font-medium rounded-xl transition-all ${activeFilter === "todas" ? "bg-accent text-white shadow-glass-sm" : "glass-card text-c-muted hover:text-c-text"}`}
           >
             Todas ({pending.length})
           </button>
@@ -162,7 +162,7 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
             <button
               key={cat}
               onClick={() => setActiveFilter(cat)}
-              className={`px-3.5 py-1.5 text-xs font-medium rounded-xl transition-all capitalize ${activeFilter === cat ? "bg-accent text-white shadow-glass-sm" : "glass-card text-stone-500 hover:text-stone-700"}`}
+              className={`px-3.5 py-1.5 text-xs font-medium rounded-xl transition-all capitalize ${activeFilter === cat ? "bg-accent text-white shadow-glass-sm" : "glass-card text-c-muted hover:text-c-text"}`}
             >
               {cat} {categoryCounts[cat] ? `(${categoryCounts[cat]})` : ""}
             </button>
@@ -173,9 +173,9 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
       {/* Pending by category */}
       {Object.entries(grouped).sort().map(([category, catItems]) => (
         <div key={category} className="mb-5">
-          <h2 className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-2.5 pl-1 flex items-center gap-2">
+          <h2 className="text-[11px] font-semibold text-c-muted uppercase tracking-widest mb-2.5 pl-1 flex items-center gap-2">
             <span className="capitalize">{category}</span>
-            <span className="text-stone-300">({catItems.length})</span>
+            <span className="text-c-subtle">({catItems.length})</span>
           </h2>
           <div className="glass-card rounded-2xl divide-y divide-white/20 overflow-hidden">
             {catItems.map((item) => (
@@ -186,14 +186,14 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
                   className="w-5 h-5 rounded-md border-2 border-stone-300 hover:border-accent flex items-center justify-center shrink-0 transition-colors disabled:opacity-50"
                 >
                   {loadingIds.has(item.id) && (
-                    <svg className="w-3 h-3 animate-spin text-stone-400" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" /><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>
+                    <svg className="w-3 h-3 animate-spin text-c-muted" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" /><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>
                   )}
                 </button>
-                <p className="text-sm text-stone-700 flex-1">{item.title}</p>
+                <p className="text-sm text-c-text flex-1">{item.title}</p>
                 <button
                   onClick={() => deleteItem(item.id)}
                   disabled={loadingIds.has(item.id)}
-                  className="text-xs text-stone-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                  className="text-xs text-c-subtle hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                 >
                   Eliminar
                 </button>
@@ -205,7 +205,7 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
 
       {filteredPending.length === 0 && pending.length > 0 && activeFilter !== "todas" && (
         <div className="text-center py-8 glass-card rounded-2xl">
-          <p className="text-sm text-stone-400">No hay items pendientes en "{activeFilter}"</p>
+          <p className="text-sm text-c-muted">No hay items pendientes en "{activeFilter}"</p>
           <button onClick={() => setActiveFilter("todas")} className="text-xs text-accent mt-2 hover:underline">Ver todas</button>
         </div>
       )}
@@ -213,14 +213,14 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
       {pending.length === 0 && (
         <div className="text-center py-10 glass-card rounded-2xl">
           <p className="text-2xl mb-2">🎉</p>
-          <p className="text-sm font-medium text-stone-600">¡Todo completado!</p>
+          <p className="text-sm font-medium text-c-muted">¡Todo completado!</p>
         </div>
       )}
 
       {/* Completed */}
       {completed.length > 0 && (
         <div className="mt-6">
-          <h2 className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-2.5 pl-1">
+          <h2 className="text-[11px] font-semibold text-c-muted uppercase tracking-widest mb-2.5 pl-1">
             Completados ({completed.length})
           </h2>
           <div className="glass-card rounded-2xl divide-y divide-white/15 overflow-hidden opacity-60">
@@ -235,8 +235,8 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
                 </button>
-                <p className="text-sm text-stone-400 line-through flex-1">{item.title}</p>
-                <span className="text-[10px] text-stone-300 capitalize">{item.category}</span>
+                <p className="text-sm text-c-muted line-through flex-1">{item.title}</p>
+                <span className="text-[10px] text-c-subtle capitalize">{item.category}</span>
               </div>
             ))}
           </div>

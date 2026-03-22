@@ -39,14 +39,14 @@ export default function AdminClient({
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-display font-semibold text-stone-800 dark:text-slate-100 tracking-tight">
+          <h1 className="text-2xl font-display font-semibold text-c-heading dark:text-slate-100 tracking-tight">
             Administración
           </h1>
-          <p className="text-sm text-stone-400 mt-1">{users.length} usuarios &middot; {trips.length} viajes</p>
+          <p className="text-sm text-c-muted mt-1">{users.length} usuarios &middot; {trips.length} viajes</p>
         </div>
         <Link
           href="/trips"
-          className="text-sm text-stone-400 hover:text-stone-600 dark:hover:text-slate-300 transition-colors"
+          className="text-sm text-c-muted hover:text-c-muted dark:hover:text-slate-300 transition-colors"
         >
           ← Volver
         </Link>
@@ -61,24 +61,24 @@ export default function AdminClient({
         ].map((s) => (
           <div key={s.label} className="glass-card rounded-2xl p-4 text-center">
             <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-stone-400 mt-1 uppercase tracking-wider">{s.label}</p>
+            <p className="text-xs text-c-muted mt-1 uppercase tracking-wider">{s.label}</p>
           </div>
         ))}
       </div>
 
       {/* Users */}
       <div className="mb-8">
-        <h2 className="text-sm font-semibold text-stone-500 dark:text-slate-400 uppercase tracking-widest mb-3">
+        <h2 className="text-sm font-semibold text-c-muted dark:text-slate-400 uppercase tracking-widest mb-3">
           Usuarios
         </h2>
         <div className="glass-card rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-white/30 dark:bg-white/5 border-b border-white/20">
               <tr>
-                <th className="text-left px-4 py-3 text-[11px] font-medium text-stone-400 uppercase tracking-wider">Usuario</th>
-                <th className="text-left px-4 py-3 text-[11px] font-medium text-stone-400 uppercase tracking-wider">Rol</th>
-                <th className="text-left px-4 py-3 text-[11px] font-medium text-stone-400 uppercase tracking-wider">Viajes</th>
-                <th className="text-left px-4 py-3 text-[11px] font-medium text-stone-400 uppercase tracking-wider">Registro</th>
+                <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Usuario</th>
+                <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Rol</th>
+                <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Viajes</th>
+                <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Registro</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -96,8 +96,8 @@ export default function AdminClient({
                           }
                         </div>
                         <div>
-                          <p className="font-medium text-stone-800 dark:text-slate-200">{u.name}</p>
-                          <p className="text-xs text-stone-400">{u.email}</p>
+                          <p className="font-medium text-c-heading dark:text-slate-200">{u.name}</p>
+                          <p className="text-xs text-c-muted">{u.email}</p>
                         </div>
                       </div>
                     </td>
@@ -111,7 +111,7 @@ export default function AdminClient({
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
                         {userTrips.length === 0
-                          ? <span className="text-xs text-stone-300">—</span>
+                          ? <span className="text-xs text-c-subtle">—</span>
                           : userTrips.map((t) => (
                             <Link key={t.id} href={`/trips/${t.id}`}
                               className="text-xs text-accent hover:underline">{t.name}</Link>
@@ -119,14 +119,14 @@ export default function AdminClient({
                         }
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-stone-400">
+                    <td className="px-4 py-3 text-xs text-c-muted">
                       {new Date(u.createdAt).toLocaleDateString("es-AR")}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {u.id !== currentUserId && (
                         <button
                           onClick={() => deleteUser(u.id)}
-                          className="text-xs text-stone-300 hover:text-red-500 px-2 py-1 rounded-xl hover:bg-red-50/50 transition-colors"
+                          className="text-xs text-c-subtle hover:text-red-500 px-2 py-1 rounded-xl hover:bg-red-50/50 transition-colors"
                         >
                           Eliminar
                         </button>
@@ -154,8 +154,8 @@ export default function AdminClient({
                     <img src={t.coverImage} alt={t.name} className="w-8 h-8 rounded-lg object-cover" />
                   )}
                   <div>
-                    <p className="text-sm font-medium text-stone-700 dark:text-slate-300">{t.name}</p>
-                    <p className="text-xs text-stone-400">{t.startDate} → {t.endDate}</p>
+                    <p className="text-sm font-medium text-c-text dark:text-slate-300">{t.name}</p>
+                    <p className="text-xs text-c-muted">{t.startDate} → {t.endDate}</p>
                   </div>
                 </div>
                 <Link href={`/trips/${t.id}`} className="text-xs text-accent hover:underline">Ver viaje</Link>

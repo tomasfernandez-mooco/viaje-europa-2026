@@ -108,8 +108,8 @@ export default function TripsListClient({ trips: initialTrips, userName }: Props
         {/* Header */}
         <div className="flex justify-between items-start mb-10">
           <div>
-            <p className="text-sm text-stone-400 mb-1.5 tracking-wide">Hola, {userName}</p>
-            <h1 className="font-display text-3xl md:text-4xl text-stone-900 tracking-tight">Mis Viajes</h1>
+            <p className="text-sm text-c-muted mb-1.5 tracking-wide">Hola, {userName}</p>
+            <h1 className="font-display text-3xl md:text-4xl text-c-heading tracking-tight">Mis Viajes</h1>
           </div>
           <button
             onClick={() => setShowCreate(true)}
@@ -150,7 +150,7 @@ export default function TripsListClient({ trips: initialTrips, userName }: Props
         {/* Trip cards */}
         {trips.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-stone-400 mb-5">No tenes viajes todavia</p>
+            <p className="text-c-muted mb-5">No tenes viajes todavia</p>
             <button onClick={() => setShowCreate(true)}
               className="px-6 py-2.5 bg-accent text-white text-sm font-medium rounded-2xl hover:bg-terra-500 transition-all duration-300 shadow-glass hover:shadow-glass-lg hover:scale-[1.02] active:scale-[0.98]">
               Crear mi primer viaje
@@ -232,7 +232,7 @@ export default function TripsListClient({ trips: initialTrips, userName }: Props
 
         {/* Logout */}
         <div className="mt-12 text-center">
-          <a href="/api/auth/logout" className="text-xs text-stone-400 hover:text-stone-600 transition-all duration-300">
+          <a href="/api/auth/logout" className="text-xs text-c-muted hover:text-c-muted transition-all duration-300">
             Cerrar sesion
           </a>
         </div>
@@ -256,10 +256,10 @@ function TripModal({
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <form onSubmit={onSubmit} className="glass-card-solid rounded-3xl p-7 w-full max-w-md shadow-glass-lg animate-fade-in">
-        <h2 className="font-display text-xl text-stone-900 mb-6 tracking-tight">{title}</h2>
+        <h2 className="font-display text-xl text-c-heading mb-6 tracking-tight">{title}</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5 tracking-wide">Nombre del viaje</label>
+            <label className="block text-xs font-medium text-c-muted mb-1.5 tracking-wide">Nombre del viaje</label>
             <input
               type="text"
               value={form.name}
@@ -272,7 +272,7 @@ function TripModal({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-stone-500 mb-1.5 tracking-wide">Inicio</label>
+              <label className="block text-xs font-medium text-c-muted mb-1.5 tracking-wide">Inicio</label>
               <input
                 type="date"
                 value={form.startDate}
@@ -282,7 +282,7 @@ function TripModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-stone-500 mb-1.5 tracking-wide">Fin</label>
+              <label className="block text-xs font-medium text-c-muted mb-1.5 tracking-wide">Fin</label>
               <input
                 type="date"
                 value={form.endDate}
@@ -293,7 +293,7 @@ function TripModal({
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5 tracking-wide">Imagen de portada (URL)</label>
+            <label className="block text-xs font-medium text-c-muted mb-1.5 tracking-wide">Imagen de portada (URL)</label>
             <input
               type="url"
               value={form.coverImage}
@@ -311,7 +311,7 @@ function TripModal({
         </div>
         <div className="flex gap-3 mt-7">
           <button type="button" onClick={onClose}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-stone-600 bg-white/40 backdrop-blur-sm border border-white/30 rounded-2xl hover:bg-white/60 transition-all duration-300">
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-c-muted bg-white/40 backdrop-blur-sm border border-white/30 rounded-2xl hover:bg-white/60 transition-all duration-300">
             Cancelar
           </button>
           <button type="submit" disabled={submitting}

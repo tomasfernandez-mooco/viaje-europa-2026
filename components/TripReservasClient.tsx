@@ -76,8 +76,8 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
     <div className="p-4 md:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-display font-semibold tracking-tight text-stone-800">Reservas</h1>
-          <p className="text-sm text-stone-400 mt-0.5">{filtered.length} reservas &middot; ${totalUSD.toLocaleString()} USD</p>
+          <h1 className="text-2xl font-display font-semibold tracking-tight text-c-heading">Reservas</h1>
+          <p className="text-sm text-c-muted mt-0.5">{filtered.length} reservas &middot; ${totalUSD.toLocaleString()} USD</p>
         </div>
         <button
           onClick={() => { setEditing(null); setModalOpen(true); }}
@@ -106,12 +106,12 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
         <table className="w-full text-sm">
           <thead className="bg-white/30 border-b border-white/20">
             <tr>
-              <th className="text-left px-4 py-3 text-[11px] font-medium text-stone-400 uppercase tracking-wider">Reserva</th>
-              <th className="text-left px-4 py-3 text-[11px] font-medium text-stone-400 uppercase tracking-wider">Ciudad</th>
-              <th className="text-left px-4 py-3 text-[11px] font-medium text-stone-400 uppercase tracking-wider">Fechas</th>
-              <th className="text-right px-4 py-3 text-[11px] font-medium text-stone-400 uppercase tracking-wider">Costo</th>
-              <th className="text-right px-4 py-3 text-[11px] font-medium text-stone-400 uppercase tracking-wider">USD</th>
-              <th className="text-left px-4 py-3 text-[11px] font-medium text-stone-400 uppercase tracking-wider">Estado</th>
+              <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Reserva</th>
+              <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Ciudad</th>
+              <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Fechas</th>
+              <th className="text-right px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Costo</th>
+              <th className="text-right px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">USD</th>
+              <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Estado</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -124,9 +124,9 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
                       <img src={r.attachmentUrl} alt="" className="w-9 h-9 rounded-lg object-cover border border-white/20 shrink-0" />
                     )}
                     <div>
-                      <p className="font-medium text-stone-800">{r.title}</p>
+                      <p className="font-medium text-c-heading">{r.title}</p>
                       {r.alert && <p className="text-xs text-amber-600 mt-0.5 line-clamp-1">{r.alert}</p>}
-                      {r.provider && <p className="text-xs text-stone-400">{r.provider}</p>}
+                      {r.provider && <p className="text-xs text-c-muted">{r.provider}</p>}
                       {r.attachmentUrl && !/\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(r.attachmentUrl) && (
                         <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline">
                           📎 Adjunto
@@ -135,13 +135,13 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-stone-500">{r.city}</td>
-                <td className="px-4 py-3 text-stone-500 whitespace-nowrap text-xs">
+                <td className="px-4 py-3 text-c-muted">{r.city}</td>
+                <td className="px-4 py-3 text-c-muted whitespace-nowrap text-xs">
                   {formatDateShort(r.startDate)}
                   {r.endDate && r.endDate !== r.startDate && ` — ${formatDateShort(r.endDate)}`}
                 </td>
-                <td className="px-4 py-3 text-right text-stone-500">{formatMoney(r.price, r.currency)}</td>
-                <td className="px-4 py-3 text-right font-medium text-stone-800">${r.priceUSD.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right text-c-muted">{formatMoney(r.price, r.currency)}</td>
+                <td className="px-4 py-3 text-right font-medium text-c-heading">${r.priceUSD.toLocaleString()}</td>
                 <td className="px-4 py-3">
                   <button onClick={() => toggleStatus(r)}><EstadoBadge estado={r.status} /></button>
                 </td>
@@ -149,16 +149,16 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
                   <div className="flex items-center justify-end gap-1">
                     {r.reservationUrl && (
                       <a href={r.reservationUrl} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-stone-400 hover:text-accent px-2 py-1 rounded-xl hover:bg-white/40 transition-colors">
+                        className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/40 transition-colors">
                         Reservar
                       </a>
                     )}
                     <button onClick={() => { setEditing(r); setModalOpen(true); }}
-                      className="text-xs text-stone-400 hover:text-accent px-2 py-1 rounded-xl hover:bg-white/40 transition-colors">
+                      className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/40 transition-colors">
                       Editar
                     </button>
                     <button onClick={() => handleDelete(r.id)}
-                      className="text-xs text-stone-300 hover:text-red-500 px-2 py-1 rounded-xl hover:bg-red-50/50 transition-colors">
+                      className="text-xs text-c-subtle hover:text-red-500 px-2 py-1 rounded-xl hover:bg-red-50/50 transition-colors">
                       Eliminar
                     </button>
                   </div>
@@ -175,12 +175,12 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
           <div key={r.id} className="glass-card rounded-2xl p-4">
             <div className="flex justify-between items-start mb-2">
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-stone-800 text-sm">{r.title}</p>
-                <p className="text-xs text-stone-400 mt-0.5">{r.city} &middot; {formatDateShort(r.startDate)}</p>
+                <p className="font-medium text-c-heading text-sm">{r.title}</p>
+                <p className="text-xs text-c-muted mt-0.5">{r.city} &middot; {formatDateShort(r.startDate)}</p>
               </div>
               <div className="text-right ml-3">
-                <p className="text-xs text-stone-500">{formatMoney(r.price, r.currency)}</p>
-                <p className="text-sm font-medium text-stone-800">${r.priceUSD.toLocaleString()}</p>
+                <p className="text-xs text-c-muted">{formatMoney(r.price, r.currency)}</p>
+                <p className="text-sm font-medium text-c-heading">${r.priceUSD.toLocaleString()}</p>
               </div>
             </div>
             {r.alert && <p className="text-xs text-amber-600 mb-2">{r.alert}</p>}
@@ -189,10 +189,10 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
               <div className="flex gap-2">
                 {r.reservationUrl && (
                   <a href={r.reservationUrl} target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-stone-500 hover:text-accent transition-colors">Reservar</a>
+                    className="text-xs text-c-muted hover:text-accent transition-colors">Reservar</a>
                 )}
                 <button onClick={() => { setEditing(r); setModalOpen(true); }}
-                  className="text-xs text-stone-400 hover:text-accent transition-colors">Editar</button>
+                  className="text-xs text-c-muted hover:text-accent transition-colors">Editar</button>
               </div>
             </div>
           </div>
@@ -233,7 +233,7 @@ function ReservationModal({
   };
   const [form, setForm] = useState<Partial<Reservation>>(reservation ?? empty);
   const inputClass = "glass-input";
-  const labelClass = "block text-xs font-medium text-stone-500 mb-1";
+  const labelClass = "block text-xs font-medium text-c-muted mb-1";
 
   function update(field: string, value: string | number | boolean) {
     const next = { ...form, [field]: value };
@@ -252,8 +252,8 @@ function ReservationModal({
     <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade">
       <div className="glass-card-solid rounded-2xl shadow-glass-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="px-6 py-4 border-b border-white/15 flex justify-between items-center">
-          <h2 className="text-lg font-display font-semibold text-stone-800">{reservation ? "Editar reserva" : "Nueva reserva"}</h2>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/40 transition-colors">&times;</button>
+          <h2 className="text-lg font-display font-semibold text-c-heading">{reservation ? "Editar reserva" : "Nueva reserva"}</h2>
+          <button onClick={onClose} className="text-c-muted hover:text-c-muted w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/40 transition-colors">&times;</button>
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="p-6 space-y-4">
@@ -323,7 +323,7 @@ function ReservationModal({
             </div>
             <div>
               <label className={labelClass}>Equivalente USD</label>
-              <input type="number" value={form.priceUSD ?? 0} readOnly className={`${inputClass} !bg-white/30 text-stone-400`} />
+              <input type="number" value={form.priceUSD ?? 0} readOnly className={`${inputClass} !bg-white/30 text-c-muted`} />
             </div>
           </div>
 
@@ -372,12 +372,12 @@ function ReservationModal({
           </div>
 
           <div className="flex flex-wrap gap-5">
-            <label className="flex items-center gap-2 text-sm text-stone-600 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-c-muted cursor-pointer">
               <input type="checkbox" checked={form.freeCancellation ?? false}
                 onChange={(e) => update("freeCancellation", e.target.checked)} className="accent-accent rounded" />
               Cancelacion gratuita
             </label>
-            <label className="flex items-center gap-2 text-sm text-stone-600 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-c-muted cursor-pointer">
               <input type="checkbox" checked={form.paid ?? false}
                 onChange={(e) => update("paid", e.target.checked)} className="accent-accent rounded" />
               Pagado
@@ -386,7 +386,7 @@ function ReservationModal({
 
           {suggestion && !form.reservationUrl && (
             <div className="flex items-center gap-2 p-3 glass-card rounded-2xl border-accent/20">
-              <span className="text-xs text-stone-500">Sugerencia:</span>
+              <span className="text-xs text-c-muted">Sugerencia:</span>
               <a href={suggestion.url} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline font-medium">
                 {suggestion.label}
               </a>
@@ -394,7 +394,7 @@ function ReservationModal({
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2.5 text-sm text-stone-500 hover:text-stone-700 rounded-2xl hover:bg-white/40 transition-colors">Cancelar</button>
+            <button type="button" onClick={onClose} className="px-4 py-2.5 text-sm text-c-muted hover:text-c-text rounded-2xl hover:bg-white/40 transition-colors">Cancelar</button>
             <button type="submit" className="px-6 py-2.5 text-sm bg-accent text-white rounded-2xl hover:bg-terra-500 font-medium shadow-glass-sm hover:shadow-glass transition-all">
               {reservation ? "Guardar" : "Agregar"}
             </button>

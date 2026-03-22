@@ -76,12 +76,12 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
     <div className="p-4 md:p-8 max-w-4xl mx-auto print:p-6 print:max-w-none">
       <div className="mb-8 flex items-start justify-between print:mb-6">
         <div>
-          <h1 className="text-2xl font-display font-semibold text-stone-800 tracking-tight">Itinerario</h1>
-          <p className="text-sm text-stone-400 mt-1">{dates.length} dias</p>
+          <h1 className="text-2xl font-display font-semibold text-c-heading tracking-tight">Itinerario</h1>
+          <p className="text-sm text-c-muted mt-1">{dates.length} dias</p>
         </div>
         <button
           onClick={handleExportPDF}
-          className="print:hidden flex items-center gap-2 glass-card px-4 py-2 text-xs font-medium rounded-xl hover:bg-white/75 text-stone-700 transition-all"
+          className="print:hidden flex items-center gap-2 glass-card px-4 py-2 text-xs font-medium rounded-xl hover:bg-white/75 text-c-text transition-all"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 15.75v3h10.5v-3M6.75 15.75H4.5A2.25 2.25 0 012.25 13.5V9.75A2.25 2.25 0 014.5 7.5h15a2.25 2.25 0 012.25 2.25v3.75a2.25 2.25 0 01-2.25 2.25H17.25M6.75 7.5V4.5h10.5V7.5" />
@@ -104,27 +104,27 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
             <div key={fecha} className={`glass-card rounded-2xl overflow-hidden ${hasAlert ? "!border-amber-200/40" : ""}`}>
               <div className={`flex items-center gap-4 px-4 py-3.5 ${hasAlert ? "bg-amber-50/30" : "bg-white/20"} border-b border-white/15`}>
                 <div className="text-center min-w-[44px]">
-                  <p className="text-[11px] text-stone-400 uppercase tracking-wide">{DIAS_SEMANA[d.getDay()]}</p>
-                  <p className="text-xl font-bold text-stone-800">{d.getDate()}</p>
-                  <p className="text-[11px] text-stone-400">{MESES[d.getMonth()]}</p>
+                  <p className="text-[11px] text-c-muted uppercase tracking-wide">{DIAS_SEMANA[d.getDay()]}</p>
+                  <p className="text-xl font-bold text-c-heading">{d.getDate()}</p>
+                  <p className="text-[11px] text-c-muted">{MESES[d.getMonth()]}</p>
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2.5">
                     <span className="text-xs font-medium bg-accent text-white px-2.5 py-0.5 rounded-xl">Dia {index + 1}</span>
-                    {loc && <p className="text-sm font-medium text-stone-600">{loc.city}, {loc.country}</p>}
+                    {loc && <p className="text-sm font-medium text-c-muted">{loc.city}, {loc.country}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1.5">
                     {[...new Set(dayItems.map((i) => i.category))].map((cat) => (
-                      <span key={cat} className={`text-[11px] px-2 py-0.5 rounded-xl border ${CATEGORIA_COLORS[cat] ?? "bg-white/40 text-stone-600 border-white/20"}`}>
+                      <span key={cat} className={`text-[11px] px-2 py-0.5 rounded-xl border ${CATEGORIA_COLORS[cat] ?? "bg-white/40 text-c-muted border-white/20"}`}>
                         {CATEGORIA_LABELS[cat] ?? cat}
                       </span>
                     ))}
                   </div>
                   <button
                     onClick={() => setCreatingForDate(fecha)}
-                    className="ml-1 p-1.5 rounded-xl text-stone-400 hover:text-accent hover:bg-white/40 transition-all"
+                    className="ml-1 p-1.5 rounded-xl text-c-muted hover:text-accent hover:bg-white/40 transition-all"
                     title="Agregar actividad"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -140,29 +140,29 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
                     <div key={item.id} className="flex items-start gap-3 group py-0.5">
                       <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
                         {getAlertDot(item.alertLevel)}
-                        <span className={`text-[11px] px-2 py-0.5 rounded-xl border ${CATEGORIA_COLORS[item.category] ?? "bg-white/40 text-stone-600 border-white/20"}`}>
+                        <span className={`text-[11px] px-2 py-0.5 rounded-xl border ${CATEGORIA_COLORS[item.category] ?? "bg-white/40 text-c-muted border-white/20"}`}>
                           {CATEGORIA_LABELS[item.category] ?? item.category}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          {item.time && <span className="text-xs text-stone-400 font-mono">{item.time}</span>}
-                          <p className="text-sm font-medium text-stone-700">{item.title}</p>
+                          {item.time && <span className="text-xs text-c-muted font-mono">{item.time}</span>}
+                          <p className="text-sm font-medium text-c-text">{item.title}</p>
                         </div>
                         {item.description && (
-                          <p className="text-xs text-stone-400 mt-0.5">{item.description}</p>
+                          <p className="text-xs text-c-muted mt-0.5">{item.description}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <button
                           onClick={() => setEditingItem(item)}
-                          className="text-xs text-stone-400 hover:text-accent px-2 py-1 rounded-xl hover:bg-white/40 transition-all"
+                          className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/40 transition-all"
                         >
                           Editar
                         </button>
                         <button
                           onClick={() => handleDelete(item.id)}
-                          className="text-xs text-stone-300 hover:text-red-500 opacity-0 group-hover:opacity-100 p-1 rounded-xl hover:bg-red-50/40 transition-all"
+                          className="text-xs text-c-subtle hover:text-red-500 opacity-0 group-hover:opacity-100 p-1 rounded-xl hover:bg-red-50/40 transition-all"
                           title="Eliminar"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -177,7 +177,7 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
 
               {dayItems.length === 0 && (
                 <div className="px-4 py-3">
-                  <p className="text-xs text-stone-300">Sin actividades programadas</p>
+                  <p className="text-xs text-c-subtle">Sin actividades programadas</p>
                 </div>
               )}
             </div>
@@ -212,7 +212,7 @@ type ItemModalProps =
 
 function ItemModal(props: ItemModalProps) {
   const inputClass = "glass-input";
-  const labelClass = "block text-xs font-medium text-stone-500 mb-1";
+  const labelClass = "block text-xs font-medium text-c-muted mb-1";
 
   const [form, setForm] = useState<Partial<ItineraryItem>>(
     props.mode === "edit"
@@ -229,10 +229,10 @@ function ItemModal(props: ItemModalProps) {
     <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade">
       <div className="glass-card-solid rounded-2xl shadow-glass-lg w-full max-w-lg">
         <div className="px-6 py-4 border-b border-white/15 flex justify-between items-center">
-          <h2 className="text-lg font-display font-semibold text-stone-800">
+          <h2 className="text-lg font-display font-semibold text-c-heading">
             {props.mode === "edit" ? "Editar item" : "Nuevo item"}
           </h2>
-          <button onClick={props.onClose} className="text-stone-400 hover:text-stone-600 w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/40 transition-colors">&times;</button>
+          <button onClick={props.onClose} className="text-c-muted hover:text-c-muted w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/40 transition-colors">&times;</button>
         </div>
         <div className="p-6 space-y-4">
           <div>
@@ -272,7 +272,7 @@ function ItemModal(props: ItemModalProps) {
             <textarea value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className={`${inputClass} resize-none`} />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={props.onClose} className="px-4 py-2.5 text-sm text-stone-500 hover:text-stone-700 rounded-2xl hover:bg-white/40 transition-colors">Cancelar</button>
+            <button onClick={props.onClose} className="px-4 py-2.5 text-sm text-c-muted hover:text-c-text rounded-2xl hover:bg-white/40 transition-colors">Cancelar</button>
             <button onClick={handleSubmit} disabled={!form.title?.trim()} className="px-6 py-2.5 text-sm bg-accent text-white rounded-2xl hover:bg-terra-500 font-medium shadow-glass-sm hover:shadow-glass transition-all disabled:opacity-40">
               {props.mode === "edit" ? "Guardar" : "Agregar"}
             </button>

@@ -105,8 +105,8 @@ export default function TripDashboardClient({ trip, reservations, config, locati
 
       {!trip.coverImage && (
         <div className="animate-fade-in glass-card rounded-2xl p-6">
-          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-stone-800">{trip.name}</h1>
-          <p className="text-sm text-stone-400 mt-2">{formatDateShort(trip.startDate)} — {formatDateShort(trip.endDate)}</p>
+          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-c-heading">{trip.name}</h1>
+          <p className="text-sm text-c-muted mt-2">{formatDateShort(trip.startDate)} — {formatDateShort(trip.endDate)}</p>
           {daysLeft > 0 && (
             <span className="inline-block mt-3 px-4 py-1.5 rounded-full glass-card text-xs font-medium text-accent tracking-wide">
               {daysLeft} dias restantes
@@ -148,9 +148,9 @@ export default function TripDashboardClient({ trip, reservations, config, locati
           },
         ].map((kpi) => (
           <div key={kpi.label} className="glass-card glass-card-hover rounded-2xl p-5 hover:-translate-y-0.5 transition-all duration-300">
-            <p className="text-[11px] text-stone-400 uppercase tracking-wider font-medium">{kpi.label}</p>
-            <p className={`text-2xl md:text-3xl font-display font-bold mt-1.5 ${kpi.highlight ? "text-accent" : "text-stone-800"}`}>{kpi.value}</p>
-            {kpi.sub && <p className="text-xs text-stone-400 mt-0.5">{kpi.sub}</p>}
+            <p className="text-[11px] text-c-muted uppercase tracking-wider font-medium">{kpi.label}</p>
+            <p className={`text-2xl md:text-3xl font-display font-bold mt-1.5 ${kpi.highlight ? "text-accent" : "text-c-heading"}`}>{kpi.value}</p>
+            {kpi.sub && <p className="text-xs text-c-muted mt-0.5">{kpi.sub}</p>}
           </div>
         ))}
       </div>
@@ -159,8 +159,8 @@ export default function TripDashboardClient({ trip, reservations, config, locati
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-fade-in" style={{ animationDelay: "0.1s" }}>
         <div className="glass-card rounded-2xl p-5">
           <div className="flex justify-between items-center mb-3">
-            <p className="text-sm font-semibold text-stone-700">Progreso de reservas</p>
-            <p className="text-sm text-stone-400 font-medium">{confirmados.length}/{reservations.length} <span className="text-accent">({pctConfirmado}%)</span></p>
+            <p className="text-sm font-semibold text-c-text">Progreso de reservas</p>
+            <p className="text-sm text-c-muted font-medium">{confirmados.length}/{reservations.length} <span className="text-accent">({pctConfirmado}%)</span></p>
           </div>
           <div className="w-full bg-terra-100 rounded-2xl h-2.5 overflow-hidden">
             <div className="h-full flex">
@@ -176,10 +176,10 @@ export default function TripDashboardClient({ trip, reservations, config, locati
               { label: "Sin reservar", count: porReservar.length, color: "bg-status-danger/50" },
             ].map((s) => (
               <div key={s.label} className="text-center">
-                <p className={`text-lg font-bold text-stone-700`}>{s.count}</p>
+                <p className={`text-lg font-bold text-c-text`}>{s.count}</p>
                 <div className="flex items-center justify-center gap-1 mt-0.5">
                   <span className={`w-1.5 h-1.5 rounded-full ${s.color}`} />
-                  <span className="text-[10px] text-stone-400">{s.label}</span>
+                  <span className="text-[10px] text-c-muted">{s.label}</span>
                 </div>
               </div>
             ))}
@@ -187,11 +187,11 @@ export default function TripDashboardClient({ trip, reservations, config, locati
         </div>
 
         <div className="glass-card rounded-2xl p-5">
-          <h2 className="text-sm font-semibold text-stone-700 mb-3">Progreso por categoría</h2>
+          <h2 className="text-sm font-semibold text-c-text mb-3">Progreso por categoría</h2>
           <div className="space-y-2.5">
             {bookingProgress.map((cat) => (
               <div key={cat.category} className="flex items-center gap-3">
-                <span className="text-xs font-medium text-stone-500 w-24 shrink-0">{CATEGORIA_LABELS[cat.category]}</span>
+                <span className="text-xs font-medium text-c-muted w-24 shrink-0">{CATEGORIA_LABELS[cat.category]}</span>
                 <div className="flex-1 flex gap-0.5 h-5 rounded-lg overflow-hidden">
                   {cat.confirmed > 0 && (
                     <div className="bg-status-success flex items-center justify-center text-[10px] text-white font-semibold transition-all duration-300" style={{ flex: cat.confirmed }}>{cat.confirmed}</div>
@@ -203,7 +203,7 @@ export default function TripDashboardClient({ trip, reservations, config, locati
                     <div className="bg-status-danger/50 flex items-center justify-center text-[10px] text-white font-semibold transition-all duration-300" style={{ flex: cat.notBooked }}>{cat.notBooked}</div>
                   )}
                 </div>
-                <span className="text-xs text-stone-400 font-medium w-5 text-right">{cat.total}</span>
+                <span className="text-xs text-c-muted font-medium w-5 text-right">{cat.total}</span>
               </div>
             ))}
           </div>
@@ -214,7 +214,7 @@ export default function TripDashboardClient({ trip, reservations, config, locati
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-fade-in" style={{ animationDelay: "0.15s" }}>
         <div className="glass-card rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-stone-700">Alertas</h2>
+            <h2 className="text-sm font-semibold text-c-text">Alertas</h2>
             {conAlerta.length > 0 && (
               <span className="px-2 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-700 rounded-full">{conAlerta.length}</span>
             )}
@@ -222,14 +222,14 @@ export default function TripDashboardClient({ trip, reservations, config, locati
           <div className="space-y-2">
             {conAlerta.slice(0, 5).map((r) => (
               <div key={r.id} className="p-3 rounded-xl bg-amber-50/50 backdrop-blur-sm border-l-[3px] border-l-status-warning border border-amber-100/50">
-                <p className="text-xs font-semibold text-stone-700 leading-tight">{r.title}</p>
+                <p className="text-xs font-semibold text-c-text leading-tight">{r.title}</p>
                 <p className="text-xs text-amber-700/80 mt-0.5 leading-snug">{r.alert}</p>
               </div>
             ))}
             {conAlerta.length === 0 && (
               <div className="py-6 text-center">
                 <p className="text-2xl mb-1">✅</p>
-                <p className="text-xs text-stone-400">Sin alertas activas</p>
+                <p className="text-xs text-c-muted">Sin alertas activas</p>
               </div>
             )}
           </div>
@@ -237,9 +237,9 @@ export default function TripDashboardClient({ trip, reservations, config, locati
 
         <div className="glass-card rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-stone-700">Fechas límite</h2>
+            <h2 className="text-sm font-semibold text-c-text">Fechas límite</h2>
             {urgentes.length > 0 && (
-              <span className="px-2 py-0.5 text-[11px] font-medium bg-stone-100 text-stone-600 rounded-full">{urgentes.length}</span>
+              <span className="px-2 py-0.5 text-[11px] font-medium bg-c-surface-alt text-c-muted border border-c-border rounded-full">{urgentes.length}</span>
             )}
           </div>
           <div className="space-y-2">
@@ -250,11 +250,11 @@ export default function TripDashboardClient({ trip, reservations, config, locati
               return (
                 <div key={r.id} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${isVencido ? "bg-red-50/40 border-red-100/60 border-l-[3px] border-l-status-danger" : isUrgent ? "bg-amber-50/40 border-amber-100/60 border-l-[3px] border-l-status-warning" : "bg-white/40 border-white/30 border-l-[3px] border-l-accent"}`}>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-stone-700 truncate">{r.title}</p>
-                    <p className="text-xs text-stone-400 mt-0.5">{formatMoney(r.price, r.currency)}</p>
+                    <p className="text-xs font-semibold text-c-text truncate">{r.title}</p>
+                    <p className="text-xs text-c-muted mt-0.5">{formatMoney(r.price, r.currency)}</p>
                   </div>
                   <div className="text-right ml-3 shrink-0">
-                    <p className={`text-xs font-bold ${isVencido ? "text-status-danger" : isUrgent ? "text-amber-600" : "text-stone-500"}`}>
+                    <p className={`text-xs font-bold ${isVencido ? "text-status-danger" : isUrgent ? "text-amber-600" : "text-c-muted"}`}>
                       {isVencido ? "Vencido" : daysUntil === 0 ? "Hoy" : `${daysUntil}d`}
                     </p>
                   </div>
@@ -264,7 +264,7 @@ export default function TripDashboardClient({ trip, reservations, config, locati
             {urgentes.length === 0 && (
               <div className="py-6 text-center">
                 <p className="text-2xl mb-1">📅</p>
-                <p className="text-xs text-stone-400">Sin fechas límite pendientes</p>
+                <p className="text-xs text-c-muted">Sin fechas límite pendientes</p>
               </div>
             )}
           </div>
@@ -281,7 +281,7 @@ export default function TripDashboardClient({ trip, reservations, config, locati
         ].map((stat) => (
           <div key={stat.label} className="glass-card glass-card-hover rounded-2xl p-5 text-center hover:-translate-y-0.5 transition-all duration-300 cursor-default">
             <p className="text-2xl font-display font-bold text-accent">{stat.value}</p>
-            <p className="text-xs text-stone-400 mt-1 uppercase tracking-wider">{stat.label}</p>
+            <p className="text-xs text-c-muted mt-1 uppercase tracking-wider">{stat.label}</p>
           </div>
         ))}
       </div>

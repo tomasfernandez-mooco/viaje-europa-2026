@@ -242,9 +242,9 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
       {profileOpen && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade">
           <div className="glass-card-solid rounded-2xl shadow-glass-lg w-full max-w-sm">
-            <div className="px-5 py-4 border-b border-white/15 flex justify-between items-center">
-              <h2 className="text-base font-display font-semibold text-stone-800">Editar perfil</h2>
-              <button onClick={() => setProfileOpen(false)} className="text-stone-400 hover:text-stone-600 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/40 transition-colors">&times;</button>
+            <div className="px-5 py-4 border-b border-c-border flex justify-between items-center">
+              <h2 className="text-base font-display font-semibold text-c-heading">Editar perfil</h2>
+              <button onClick={() => setProfileOpen(false)} className="text-c-muted hover:text-c-text w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors">&times;</button>
             </div>
             <form
               onSubmit={async (e) => {
@@ -262,7 +262,7 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
               className="p-5 space-y-4"
             >
               <div>
-                <label className="block text-xs font-medium text-stone-500 mb-1">Nombre</label>
+                <label className="block text-xs font-medium text-c-muted mb-1">Nombre</label>
                 <input
                   value={profileForm.name}
                   onChange={(e) => setProfileForm((f) => ({ ...f, name: e.target.value }))}
@@ -271,7 +271,7 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-stone-500 mb-1">Avatar (URL de imagen)</label>
+                <label className="block text-xs font-medium text-c-muted mb-1">Avatar (URL de imagen)</label>
                 <input
                   value={profileForm.avatar}
                   onChange={(e) => setProfileForm((f) => ({ ...f, avatar: e.target.value }))}
@@ -279,11 +279,11 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
                   className="glass-input"
                 />
                 {profileForm.avatar && (
-                  <img src={profileForm.avatar} alt="preview" className="mt-2 w-12 h-12 rounded-full object-cover border border-white/20" />
+                  <img src={profileForm.avatar} alt="preview" className="mt-2 w-12 h-12 rounded-full object-cover border border-c-border" />
                 )}
               </div>
               <div className="flex justify-end gap-2 pt-1">
-                <button type="button" onClick={() => setProfileOpen(false)} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700 rounded-xl hover:bg-white/40 transition-colors">Cancelar</button>
+                <button type="button" onClick={() => setProfileOpen(false)} className="px-4 py-2 text-sm text-c-muted hover:text-c-text rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors">Cancelar</button>
                 <button type="submit" disabled={profileSaving} className="px-5 py-2 text-sm bg-accent text-white rounded-xl hover:bg-terra-500 font-medium transition-all disabled:opacity-60">
                   {profileSaving ? "Guardando..." : "Guardar"}
                 </button>

@@ -5,7 +5,7 @@ import { Location, Reservation, CATEGORIA_LABELS, formatMoney } from "@/lib/type
 
 const LeafletMap = dynamic(() => import("./LeafletMap"), { ssr: false, loading: () => (
   <div className="w-full h-[400px] bg-white/40 backdrop-blur-sm rounded-2xl animate-pulse flex items-center justify-center">
-    <p className="text-sm text-stone-400">Cargando mapa...</p>
+    <p className="text-sm text-c-muted">Cargando mapa...</p>
   </div>
 )});
 
@@ -76,8 +76,8 @@ export default function TripMapaClient({ tripId, locations, reservations }: Prop
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-display text-stone-800 tracking-tight">Mapa de Ruta</h1>
-        <p className="text-sm text-stone-500 mt-1">{locations.length} destinos</p>
+        <h1 className="text-2xl font-display text-c-heading tracking-tight">Mapa de Ruta</h1>
+        <p className="text-sm text-c-muted mt-1">{locations.length} destinos</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -94,7 +94,7 @@ export default function TripMapaClient({ tripId, locations, reservations }: Prop
 
           {/* Route strip */}
           <div className="glass-card rounded-2xl p-4">
-            <h2 className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-3">Ruta del viaje</h2>
+            <h2 className="text-[11px] font-semibold text-c-muted uppercase tracking-widest mb-3">Ruta del viaje</h2>
             <div className="flex flex-wrap items-center gap-1">
               {locations.map((loc, i) => (
                 <div key={loc.id} className="flex items-center">
@@ -103,18 +103,18 @@ export default function TripMapaClient({ tripId, locations, reservations }: Prop
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                       selected === loc.id
                         ? "bg-accent text-white shadow-glass-sm"
-                        : "bg-white/50 text-stone-600 border border-white/30 hover:bg-white/70"
+                        : "bg-white/50 text-c-muted border border-white/30 hover:bg-white/70"
                     }`}
                   >
                     <span className={`w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-bold ${
-                      selected === loc.id ? "bg-white/20 text-white" : "bg-stone-200/60 text-stone-500"
+                      selected === loc.id ? "bg-white/20 text-white" : "bg-stone-200/60 text-c-muted"
                     }`}>
                       {i + 1}
                     </span>
                     {loc.city}
                   </button>
                   {i < locations.length - 1 && (
-                    <svg className="w-3 h-3 text-stone-300 mx-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg className="w-3 h-3 text-c-subtle mx-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                     </svg>
                   )}
@@ -145,19 +145,19 @@ export default function TripMapaClient({ tripId, locations, reservations }: Prop
                   </div>
                 )}
                 <div className="p-4">
-                  <h3 className="font-display text-stone-800 text-lg">{selectedLoc.city}</h3>
-                  <p className="text-xs text-stone-500 mt-0.5">
+                  <h3 className="font-display text-c-heading text-lg">{selectedLoc.city}</h3>
+                  <p className="text-xs text-c-muted mt-0.5">
                     {selectedLoc.country} &middot; {selectedLoc.dateRange ?? ""}
                   </p>
                   {selectedLoc.description && (
-                    <p className="text-sm text-stone-600 mt-3 leading-relaxed">{selectedLoc.description}</p>
+                    <p className="text-sm text-c-muted mt-3 leading-relaxed">{selectedLoc.description}</p>
                   )}
                 </div>
               </div>
 
               {/* Notes */}
               <div className="glass-card-solid rounded-2xl p-4">
-                <label className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-2 block">
+                <label className="text-[11px] font-semibold text-c-muted uppercase tracking-widest mb-2 block">
                   Notas del viaje
                 </label>
                 <textarea
@@ -169,14 +169,14 @@ export default function TripMapaClient({ tripId, locations, reservations }: Prop
                   placeholder="Agregar notas para esta ciudad..."
                 />
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-[10px] text-stone-400">
+                  <span className="text-[10px] text-c-muted">
                     {savingNotes ? "Guardando..." : "Se guarda automaticamente"}
                   </span>
                   <button
                     type="button"
                     onClick={() => selectedLoc && handleSaveNotes(selectedLoc.id, editingNotes)}
                     disabled={savingNotes}
-                    className="text-xs text-stone-500 hover:text-accent px-3 py-1 rounded-xl bg-white/40 border border-white/30 hover:bg-white/60 disabled:opacity-50 transition-all"
+                    className="text-xs text-c-muted hover:text-accent px-3 py-1 rounded-xl bg-white/40 border border-white/30 hover:bg-white/60 disabled:opacity-50 transition-all"
                   >
                     Guardar
                   </button>
@@ -186,7 +186,7 @@ export default function TripMapaClient({ tripId, locations, reservations }: Prop
               {/* Reservations for this city */}
               {selectedReservations.length > 0 && (
                 <div className="glass-card-solid rounded-2xl p-4">
-                  <h4 className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-3">
+                  <h4 className="text-[11px] font-semibold text-c-muted uppercase tracking-widest mb-3">
                     Reservas en {selectedLoc.city}
                   </h4>
                   <div className="space-y-2">
@@ -194,9 +194,9 @@ export default function TripMapaClient({ tripId, locations, reservations }: Prop
                       <div key={r.id} className="p-3 bg-white/40 rounded-xl border border-white/30">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-stone-700 truncate">{r.title}</p>
+                            <p className="text-sm font-medium text-c-text truncate">{r.title}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] text-stone-500 bg-white/50 px-2 py-0.5 rounded-full">
+                              <span className="text-[10px] text-c-muted bg-white/50 px-2 py-0.5 rounded-full">
                                 {CATEGORIA_LABELS[r.type] ?? r.type}
                               </span>
                               <span className={`text-[10px] px-2 py-0.5 rounded-full ${
@@ -226,33 +226,33 @@ export default function TripMapaClient({ tripId, locations, reservations }: Prop
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 0115 0z" />
                 </svg>
               </div>
-              <p className="text-sm text-stone-500">Selecciona una ciudad en el mapa o la ruta</p>
+              <p className="text-sm text-c-muted">Selecciona una ciudad en el mapa o la ruta</p>
             </div>
           )}
 
           {/* Route summary */}
           <div className="glass-card rounded-2xl p-4">
-            <h2 className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-3">Resumen</h2>
+            <h2 className="text-[11px] font-semibold text-c-muted uppercase tracking-widest mb-3">Resumen</h2>
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-white/40 rounded-xl p-3 text-center border border-white/20">
                 <p className="text-xl font-bold text-accent">{locations.length}</p>
-                <p className="text-[10px] text-stone-500 uppercase tracking-wide">destinos</p>
+                <p className="text-[10px] text-c-muted uppercase tracking-wide">destinos</p>
               </div>
               <div className="bg-white/40 rounded-xl p-3 text-center border border-white/20">
                 <p className="text-xl font-bold text-accent">{reservations.length}</p>
-                <p className="text-[10px] text-stone-500 uppercase tracking-wide">reservas</p>
+                <p className="text-[10px] text-c-muted uppercase tracking-wide">reservas</p>
               </div>
               <div className="bg-white/40 rounded-xl p-3 text-center border border-white/20">
                 <p className="text-xl font-bold text-accent">
                   {reservations.filter((r) => r.type === "vuelo").length}
                 </p>
-                <p className="text-[10px] text-stone-500 uppercase tracking-wide">vuelos</p>
+                <p className="text-[10px] text-c-muted uppercase tracking-wide">vuelos</p>
               </div>
               <div className="bg-white/40 rounded-xl p-3 text-center border border-white/20">
                 <p className="text-xl font-bold text-accent">
                   ${reservations.reduce((s, r) => s + r.priceUSD, 0).toLocaleString()}
                 </p>
-                <p className="text-[10px] text-stone-500 uppercase tracking-wide">total USD</p>
+                <p className="text-[10px] text-c-muted uppercase tracking-wide">total USD</p>
               </div>
             </div>
           </div>
