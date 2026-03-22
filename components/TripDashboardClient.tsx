@@ -45,14 +45,14 @@ export default function TripDashboardClient({ trip, reservations, config, locati
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       {/* Notification banner — deadline warnings */}
       {!bannerDismissed && proximasUrgentes.length > 0 && (
-        <div className="animate-fade-in rounded-2xl p-4 bg-amber-50/70 backdrop-blur-sm border border-amber-200/60 flex items-start gap-3">
+        <div className="animate-fade-in rounded-2xl p-4 bg-amber-500/10 dark:bg-amber-500/15 backdrop-blur-sm border border-amber-500/25 flex items-start gap-3">
           <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
             <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-amber-800">
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
               {proximasUrgentes.length === 1
                 ? `1 fecha límite próxima`
                 : `${proximasUrgentes.length} fechas límite próximas`}
@@ -64,7 +64,7 @@ export default function TripDashboardClient({ trip, reservations, config, locati
                   <span key={r.id} className="text-xs text-amber-700">
                     <span className="font-medium">{r.title}</span>
                     {" — "}
-                    <span className={d <= 7 ? "text-red-600 font-bold" : ""}>{d === 0 ? "hoy" : `en ${d}d`}</span>
+                    <span className={d <= 7 ? "text-red-500 dark:text-red-400 font-bold" : "text-amber-700 dark:text-amber-400"}>{d === 0 ? "hoy" : `en ${d}d`}</span>
                   </span>
                 );
               })}
@@ -216,14 +216,14 @@ export default function TripDashboardClient({ trip, reservations, config, locati
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-c-text">Alertas</h2>
             {conAlerta.length > 0 && (
-              <span className="px-2 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-700 rounded-full">{conAlerta.length}</span>
+              <span className="px-2 py-0.5 text-[11px] font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded-full">{conAlerta.length}</span>
             )}
           </div>
           <div className="space-y-2">
             {conAlerta.slice(0, 5).map((r) => (
-              <div key={r.id} className="p-3 rounded-xl bg-amber-50/50 backdrop-blur-sm border-l-[3px] border-l-status-warning border border-amber-100/50">
+              <div key={r.id} className="p-3 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border-l-[3px] border-l-status-warning border border-amber-500/20">
                 <p className="text-xs font-semibold text-c-text leading-tight">{r.title}</p>
-                <p className="text-xs text-amber-700/80 mt-0.5 leading-snug">{r.alert}</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5 leading-snug">{r.alert}</p>
               </div>
             ))}
             {conAlerta.length === 0 && (
@@ -248,7 +248,7 @@ export default function TripDashboardClient({ trip, reservations, config, locati
               const isUrgent = daysUntil <= 7;
               const isVencido = daysUntil < 0;
               return (
-                <div key={r.id} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${isVencido ? "bg-red-50/40 border-red-100/60 border-l-[3px] border-l-status-danger" : isUrgent ? "bg-amber-50/40 border-amber-100/60 border-l-[3px] border-l-status-warning" : "bg-white/40 border-white/30 border-l-[3px] border-l-accent"}`}>
+                <div key={r.id} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${isVencido ? "bg-red-500/10 dark:bg-red-500/15 border-red-500/20 border-l-[3px] border-l-status-danger" : isUrgent ? "bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 border-l-[3px] border-l-status-warning" : "bg-white/20 dark:bg-white/5 border-c-border border-l-[3px] border-l-accent"}`}>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-semibold text-c-text truncate">{r.title}</p>
                     <p className="text-xs text-c-muted mt-0.5">{formatMoney(r.price, r.currency)}</p>
