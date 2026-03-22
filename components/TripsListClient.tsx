@@ -7,15 +7,17 @@ import { Trip, formatDateShort, getDaysUntil } from "@/lib/types";
 type Props = {
   trips: Trip[];
   userName: string;
+  userRole?: string;
+  initialShowCreate?: boolean;
 };
 
 type TripForm = { name: string; startDate: string; endDate: string; coverImage: string };
 
 const EMPTY_FORM: TripForm = { name: "", startDate: "", endDate: "", coverImage: "" };
 
-export default function TripsListClient({ trips: initialTrips, userName }: Props) {
+export default function TripsListClient({ trips: initialTrips, userName, initialShowCreate }: Props) {
   const [trips, setTrips] = useState(initialTrips);
-  const [showCreate, setShowCreate] = useState(false);
+  const [showCreate, setShowCreate] = useState(initialShowCreate ?? false);
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);

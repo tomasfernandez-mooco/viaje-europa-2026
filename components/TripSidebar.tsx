@@ -86,10 +86,11 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
             </div>
           )}
 
-          {/* Trip name + switcher button */}
+          {/* Trip name + switcher + new trip */}
+          <div className="flex items-start gap-1">
           <button
             onClick={() => setSwitcherOpen((o) => !o)}
-            className={`w-full flex items-start justify-between gap-2 text-left rounded-xl px-2 py-1.5 transition-all duration-200 ${switcherOpen ? "bg-white/8" : "hover:bg-white/5"}`}
+            className={`flex-1 flex items-start justify-between gap-2 text-left rounded-xl px-2 py-1.5 transition-all duration-200 ${switcherOpen ? "bg-white/8" : "hover:bg-white/5"}`}
           >
             <div className="min-w-0">
               <h1 className="font-display text-[15px] text-white tracking-tight leading-snug truncate">{tripName}</h1>
@@ -100,11 +101,33 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
             </svg>
           </button>
 
+          {/* New trip button — always visible */}
+          <Link
+            href="/trips"
+            className="shrink-0 p-1.5 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-colors mt-1"
+            title="Nuevo viaje"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+          </Link>
+          </div>
+
           {/* Trip switcher dropdown */}
           {switcherOpen && (
             <div className="absolute left-3 right-3 top-auto mt-1 z-50 bg-slate-950 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-fade">
-              <div className="px-3 pt-3 pb-1">
+              <div className="px-3 pt-3 pb-1 flex items-center justify-between">
                 <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest">Mis viajes</p>
+                <Link
+                  href="/trips"
+                  onClick={() => setSwitcherOpen(false)}
+                  className="p-1 rounded-md text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
+                  title="Nuevo viaje"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                </Link>
               </div>
               <div className="max-h-48 overflow-y-auto">
                 {allTrips.map((t) => (
