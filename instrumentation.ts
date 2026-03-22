@@ -3,21 +3,22 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { default: prisma } = await import("./lib/db");
 
+    // Column names must match Prisma's generated SQL (camelCase, no @map on fields)
     const migrations: { sql: string; label: string }[] = [
       {
-        sql: "ALTER TABLE trips ADD COLUMN user_id TEXT",
-        label: "trips.user_id",
+        sql: 'ALTER TABLE trips ADD COLUMN "userId" TEXT',
+        label: "trips.userId",
       },
       {
-        sql: "ALTER TABLE users ADD COLUMN avatar TEXT",
+        sql: 'ALTER TABLE users ADD COLUMN "avatar" TEXT',
         label: "users.avatar",
       },
       {
-        sql: "ALTER TABLE reservations ADD COLUMN attachment_url TEXT",
-        label: "reservations.attachment_url",
+        sql: 'ALTER TABLE reservations ADD COLUMN "attachmentUrl" TEXT',
+        label: "reservations.attachmentUrl",
       },
       {
-        sql: "ALTER TABLE reservations ADD COLUMN travelers INTEGER NOT NULL DEFAULT 2",
+        sql: 'ALTER TABLE reservations ADD COLUMN "travelers" INTEGER NOT NULL DEFAULT 2',
         label: "reservations.travelers",
       },
     ];
