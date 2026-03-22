@@ -12,17 +12,30 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
+  const [activeFilter, setActiveFilter] = useState<string>("todas");
 
-  const categories = [...new Set(items.map((i) => i.category).filter(Boolean))] as string[];
+  const allCategories = [...new Set(items.map((i) => i.category).filter(Boolean))] as string[];
   const completed = items.filter((i) => i.completed);
   const pending = items.filter((i) => !i.completed);
 
-  // Group by category
+  // Filtered pending items
+  const filteredPending = activeFilter === "todas"
+    ? pending
+    : pending.filter((i) => (i.category ?? "general") === activeFilter);
+
+  // Group filtered pending by category
   const grouped: Record<string, ChecklistItem[]> = {};
-  pending.forEach((item) => {
+  filteredPending.forEach((item) => {
     const cat = item.category ?? "general";
     if (!grouped[cat]) grouped[cat] = [];
     grouped[cat].push(item);
+  });
+
+  // Category counts for filters
+  const categoryCounts: Record<string, number> = {};
+  pending.forEach((item) => {
+    const cat = item.category ?? "general";
+    categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
   });
 
   async function toggleItem(item: ChecklistItem) {
@@ -69,25 +82,42 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
+      {/* Header */}
+      <div className="mb-6">
         <h1 className="text-2xl font-display text-stone-800 tracking-tight">Checklist</h1>
         <p className="text-sm text-stone-500 mt-1">{completed.length}/{items.length} completados</p>
       </div>
 
       {/* Progress */}
-      <div className="glass-card rounded-2xl p-4 mb-6">
+      <div className="glass-card rounded-2xl p-4 mb-5">
         <div className="flex justify-between text-sm mb-2">
-          <span className="font-medium text-stone-700">Progreso</span>
-          <span className="text-stone-400">{items.length > 0 ? Math.round((completed.length / items.length) * 100) : 0}%</span>
+          <span className="font-medium text-stone-700">Progreso general</span>
+          <span className="text-stone-400 font-medium">{items.length > 0 ? Math.round((completed.length / items.length) * 100) : 0}%</span>
         </div>
         <div className="w-full bg-white/40 rounded-full h-1.5">
-          <div className="bg-accent h-1.5 rounded-full transition-all"
+          <div className="bg-accent h-1.5 rounded-full transition-all duration-500"
             style={{ width: `${items.length > 0 ? (completed.length / items.length) * 100 : 0}%` }} />
         </div>
+        {allCategories.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {allCategories.map((cat) => {
+              const catTotal = items.filter((i) => (i.category ?? "general") === cat).length;
+              const catDone = items.filter((i) => (i.category ?? "general") === cat && i.completed).length;
+              return (
+                <div key={cat} className="flex items-center gap-1.5 text-xs text-stone-500">
+                  <div className="w-16 h-1 bg-white/40 rounded-full overflow-hidden">
+                    <div className="bg-accent h-full rounded-full" style={{ width: `${catTotal > 0 ? (catDone / catTotal) * 100 : 0}%` }} />
+                  </div>
+                  <span className="capitalize">{cat} ({catDone}/{catTotal})</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Add new */}
-      <div className="glass-card rounded-2xl p-4 mb-6">
+      <div className="glass-card rounded-2xl p-4 mb-5">
         <div className="flex gap-2">
           <input
             type="text"
@@ -103,8 +133,12 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
             className="glass-input !w-auto !rounded-xl !py-2 !px-3 text-sm"
           >
             <option value="">Categoria</option>
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
             <option value="general">general</option>
+            <option value="documentos">documentos</option>
+            <option value="equipaje">equipaje</option>
+            <option value="salud">salud</option>
+            <option value="dinero">dinero</option>
           </select>
           <button
             onClick={addItem}
@@ -115,10 +149,34 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
         </div>
       </div>
 
+      {/* Category filters */}
+      {allCategories.length > 1 && (
+        <div className="flex flex-wrap gap-2 mb-5">
+          <button
+            onClick={() => setActiveFilter("todas")}
+            className={`px-3.5 py-1.5 text-xs font-medium rounded-xl transition-all ${activeFilter === "todas" ? "bg-accent text-white shadow-glass-sm" : "glass-card text-stone-500 hover:text-stone-700"}`}
+          >
+            Todas ({pending.length})
+          </button>
+          {allCategories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveFilter(cat)}
+              className={`px-3.5 py-1.5 text-xs font-medium rounded-xl transition-all capitalize ${activeFilter === cat ? "bg-accent text-white shadow-glass-sm" : "glass-card text-stone-500 hover:text-stone-700"}`}
+            >
+              {cat} {categoryCounts[cat] ? `(${categoryCounts[cat]})` : ""}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Pending by category */}
       {Object.entries(grouped).sort().map(([category, catItems]) => (
-        <div key={category} className="mb-6">
-          <h2 className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-3 pl-1">{category}</h2>
+        <div key={category} className="mb-5">
+          <h2 className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-2.5 pl-1 flex items-center gap-2">
+            <span className="capitalize">{category}</span>
+            <span className="text-stone-300">({catItems.length})</span>
+          </h2>
           <div className="glass-card rounded-2xl divide-y divide-white/20 overflow-hidden">
             {catItems.map((item) => (
               <div key={item.id} className={`flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-white/30 ${loadingIds.has(item.id) ? "opacity-50 pointer-events-none" : ""}`}>
@@ -145,13 +203,27 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
         </div>
       ))}
 
+      {filteredPending.length === 0 && pending.length > 0 && activeFilter !== "todas" && (
+        <div className="text-center py-8 glass-card rounded-2xl">
+          <p className="text-sm text-stone-400">No hay items pendientes en "{activeFilter}"</p>
+          <button onClick={() => setActiveFilter("todas")} className="text-xs text-accent mt-2 hover:underline">Ver todas</button>
+        </div>
+      )}
+
+      {pending.length === 0 && (
+        <div className="text-center py-10 glass-card rounded-2xl">
+          <p className="text-2xl mb-2">🎉</p>
+          <p className="text-sm font-medium text-stone-600">¡Todo completado!</p>
+        </div>
+      )}
+
       {/* Completed */}
       {completed.length > 0 && (
-        <div>
-          <h2 className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-3 pl-1">
+        <div className="mt-6">
+          <h2 className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-2.5 pl-1">
             Completados ({completed.length})
           </h2>
-          <div className="glass-card rounded-2xl divide-y divide-white/15 overflow-hidden opacity-70">
+          <div className="glass-card rounded-2xl divide-y divide-white/15 overflow-hidden opacity-60">
             {completed.map((item) => (
               <div key={item.id} className={`flex items-center gap-3 px-4 py-3 group ${loadingIds.has(item.id) ? "opacity-50 pointer-events-none" : ""}`}>
                 <button
@@ -164,7 +236,7 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
                   </svg>
                 </button>
                 <p className="text-sm text-stone-400 line-through flex-1">{item.title}</p>
-                <span className="text-[10px] text-stone-300">{item.category}</span>
+                <span className="text-[10px] text-stone-300 capitalize">{item.category}</span>
               </div>
             ))}
           </div>

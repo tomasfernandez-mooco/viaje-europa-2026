@@ -9,13 +9,20 @@ type Props = {
   userName: string;
 };
 
+type TripForm = { name: string; startDate: string; endDate: string; coverImage: string };
+
+const EMPTY_FORM: TripForm = { name: "", startDate: "", endDate: "", coverImage: "" };
+
 export default function TripsListClient({ trips: initialTrips, userName }: Props) {
   const [trips, setTrips] = useState(initialTrips);
   const [showCreate, setShowCreate] = useState(false);
+  const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [duplicating, setDuplicating] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", startDate: "", endDate: "" });
+  const [form, setForm] = useState<TripForm>(EMPTY_FORM);
+  const [editForm, setEditForm] = useState<TripForm>(EMPTY_FORM);
   const router = useRouter();
 
   async function handleCreate(e: React.FormEvent) {
@@ -31,11 +38,41 @@ export default function TripsListClient({ trips: initialTrips, userName }: Props
         const trip = await res.json();
         setTrips([...trips, trip]);
         setShowCreate(false);
-        setForm({ name: "", startDate: "", endDate: "" });
+        setForm(EMPTY_FORM);
         router.push(`/trips/${trip.id}`);
       }
     } finally {
       setCreating(false);
+    }
+  }
+
+  function openEdit(trip: Trip) {
+    setEditForm({
+      name: trip.name,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      coverImage: trip.coverImage ?? "",
+    });
+    setEditingTrip(trip);
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingTrip) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/trips/${editingTrip.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setTrips(trips.map((t) => (t.id === updated.id ? updated : t)));
+        setEditingTrip(null);
+      }
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -84,57 +121,30 @@ export default function TripsListClient({ trips: initialTrips, userName }: Props
 
         {/* Create modal */}
         {showCreate && (
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-md z-50 flex items-center justify-center p-4">
-            <form onSubmit={handleCreate} className="glass-card-solid rounded-3xl p-7 w-full max-w-md shadow-glass-lg animate-fade-in">
-              <h2 className="font-display text-xl text-stone-900 mb-6 tracking-tight">Nuevo viaje</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-stone-500 mb-1.5 tracking-wide">Nombre del viaje</label>
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="Europa 2026, Brasil con amigos..."
-                    className="glass-input"
-                    required
-                    autoFocus
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-stone-500 mb-1.5 tracking-wide">Inicio</label>
-                    <input
-                      type="date"
-                      value={form.startDate}
-                      onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                      className="glass-input"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-stone-500 mb-1.5 tracking-wide">Fin</label>
-                    <input
-                      type="date"
-                      value={form.endDate}
-                      onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                      className="glass-input"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 mt-7">
-                <button type="button" onClick={() => setShowCreate(false)}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-stone-600 bg-white/40 backdrop-blur-sm border border-white/30 rounded-2xl hover:bg-white/60 transition-all duration-300">
-                  Cancelar
-                </button>
-                <button type="submit" disabled={creating}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-accent rounded-2xl hover:bg-terra-500 disabled:opacity-50 transition-all duration-300 shadow-glass hover:shadow-glass-lg">
-                  {creating ? "Creando..." : "Crear viaje"}
-                </button>
-              </div>
-            </form>
-          </div>
+          <TripModal
+            title="Nuevo viaje"
+            form={form}
+            setForm={setForm}
+            onSubmit={handleCreate}
+            onClose={() => { setShowCreate(false); setForm(EMPTY_FORM); }}
+            submitting={creating}
+            submitLabel="Crear viaje"
+            submittingLabel="Creando..."
+          />
+        )}
+
+        {/* Edit modal */}
+        {editingTrip && (
+          <TripModal
+            title={`Editar "${editingTrip.name}"`}
+            form={editForm}
+            setForm={setEditForm}
+            onSubmit={handleSaveEdit}
+            onClose={() => setEditingTrip(null)}
+            submitting={saving}
+            submitLabel="Guardar cambios"
+            submittingLabel="Guardando..."
+          />
         )}
 
         {/* Trip cards */}
@@ -177,6 +187,17 @@ export default function TripsListClient({ trips: initialTrips, userName }: Props
                   </Link>
                   {/* Action buttons */}
                   <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-all duration-300 flex gap-1.5">
+                    {/* Edit */}
+                    <button
+                      onClick={(e) => { e.preventDefault(); openEdit(trip); }}
+                      className="p-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full text-white/70 hover:text-white hover:bg-white/20 transition-all duration-300"
+                      title="Editar viaje"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                      </svg>
+                    </button>
+                    {/* Duplicate */}
                     <button
                       onClick={() => handleDuplicate(trip.id)}
                       disabled={duplicating === trip.id}
@@ -191,6 +212,7 @@ export default function TripsListClient({ trips: initialTrips, userName }: Props
                         </svg>
                       )}
                     </button>
+                    {/* Delete */}
                     <button
                       onClick={() => handleDelete(trip.id, trip.name)}
                       disabled={deleting === trip.id}
@@ -215,6 +237,89 @@ export default function TripsListClient({ trips: initialTrips, userName }: Props
           </a>
         </div>
       </div>
+    </div>
+  );
+}
+
+function TripModal({
+  title, form, setForm, onSubmit, onClose, submitting, submitLabel, submittingLabel,
+}: {
+  title: string;
+  form: TripForm;
+  setForm: (f: TripForm) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onClose: () => void;
+  submitting: boolean;
+  submitLabel: string;
+  submittingLabel: string;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <form onSubmit={onSubmit} className="glass-card-solid rounded-3xl p-7 w-full max-w-md shadow-glass-lg animate-fade-in">
+        <h2 className="font-display text-xl text-stone-900 mb-6 tracking-tight">{title}</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-stone-500 mb-1.5 tracking-wide">Nombre del viaje</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Europa 2026, Brasil con amigos..."
+              className="glass-input"
+              required
+              autoFocus
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-stone-500 mb-1.5 tracking-wide">Inicio</label>
+              <input
+                type="date"
+                value={form.startDate}
+                onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                className="glass-input"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-stone-500 mb-1.5 tracking-wide">Fin</label>
+              <input
+                type="date"
+                value={form.endDate}
+                onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                className="glass-input"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-stone-500 mb-1.5 tracking-wide">Imagen de portada (URL)</label>
+            <input
+              type="url"
+              value={form.coverImage}
+              onChange={(e) => setForm({ ...form, coverImage: e.target.value })}
+              placeholder="https://..."
+              className="glass-input"
+            />
+            {form.coverImage && (
+              <div className="mt-2 rounded-xl overflow-hidden h-24">
+                <img src={form.coverImage} alt="preview" className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-3 mt-7">
+          <button type="button" onClick={onClose}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-stone-600 bg-white/40 backdrop-blur-sm border border-white/30 rounded-2xl hover:bg-white/60 transition-all duration-300">
+            Cancelar
+          </button>
+          <button type="submit" disabled={submitting}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-accent rounded-2xl hover:bg-terra-500 disabled:opacity-50 transition-all duration-300 shadow-glass hover:shadow-glass-lg">
+            {submitting ? submittingLabel : submitLabel}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

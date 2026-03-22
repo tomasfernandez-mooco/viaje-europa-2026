@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ItineraryItem, Location, CATEGORIA_LABELS, CATEGORIA_COLORS, ALERT_COLORS, generateDateRange } from "@/lib/types";
+import { ItineraryItem, Location, CATEGORIA_LABELS, CATEGORIA_COLORS, ALERT_COLORS, ITINERARY_CATEGORIES, generateDateRange } from "@/lib/types";
 
 type Props = {
   tripId: string;
@@ -16,15 +16,8 @@ const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov"
 export default function TripItinerarioClient({ tripId, startDate, endDate, items: initialItems, locations }: Props) {
   const [items, setItems] = useState(initialItems);
   const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
+  const [creatingForDate, setCreatingForDate] = useState<string | null>(null);
   const dates = generateDateRange(startDate, endDate);
-
-  // Build city map from locations
-  const cityByDate: Record<string, string> = {};
-  locations.forEach((loc) => {
-    if (loc.dateRange) {
-      cityByDate[loc.city] = loc.dateRange;
-    }
-  });
 
   function getAlertDot(level: string | null | undefined) {
     if (!level) return null;
@@ -34,8 +27,7 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
       yellow: "shadow-[0_0_6px_rgba(234,179,8,0.4)]",
       green: "shadow-[0_0_6px_rgba(34,197,94,0.3)]",
     };
-    const glow = glowMap[level] ?? "";
-    return <span className={`inline-block w-2.5 h-2.5 rounded-full ${color} ${glow}`} title={`Riesgo: ${level}`} />;
+    return <span className={`inline-block w-2.5 h-2.5 rounded-full ${color} ${glowMap[level] ?? ""}`} title={`Riesgo: ${level}`} />;
   }
 
   async function handleSaveEdit(updated: ItineraryItem) {
@@ -49,10 +41,31 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
         const saved = await res.json();
         setItems((prev) => prev.map((i) => (i.id === saved.id ? saved : i)));
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
     setEditingItem(null);
+  }
+
+  async function handleCreate(data: Partial<ItineraryItem>) {
+    try {
+      const res = await fetch(`/api/trips/${tripId}/itinerary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, tripId }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setItems((prev) => [...prev, created]);
+      }
+    } catch (e) { console.error(e); }
+    setCreatingForDate(null);
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Eliminar este item del itinerario?")) return;
+    try {
+      await fetch(`/api/trips/${tripId}/itinerary/${id}`, { method: "DELETE" });
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    } catch (e) { console.error(e); }
   }
 
   return (
@@ -67,8 +80,6 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
           const d = new Date(fecha + "T12:00:00");
           const dayItems = items.filter((i) => i.date === fecha);
           const hasAlert = dayItems.some((i) => i.alertLevel === "red" || i.alertLevel === "yellow");
-
-          // Find location for this date
           const loc = locations.find((l) => {
             if (!l.dateRange) return false;
             return l.dateRange.includes(String(d.getDate()));
@@ -88,12 +99,23 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
                     {loc && <p className="text-sm font-medium text-stone-600">{loc.city}, {loc.country}</p>}
                   </div>
                 </div>
-                <div className="flex gap-1.5">
-                  {[...new Set(dayItems.map((i) => i.category))].map((cat) => (
-                    <span key={cat} className={`text-[11px] px-2 py-0.5 rounded-xl border ${CATEGORIA_COLORS[cat] ?? "bg-white/40 text-stone-600 border-white/20"}`}>
-                      {CATEGORIA_LABELS[cat] ?? cat}
-                    </span>
-                  ))}
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1.5">
+                    {[...new Set(dayItems.map((i) => i.category))].map((cat) => (
+                      <span key={cat} className={`text-[11px] px-2 py-0.5 rounded-xl border ${CATEGORIA_COLORS[cat] ?? "bg-white/40 text-stone-600 border-white/20"}`}>
+                        {CATEGORIA_LABELS[cat] ?? cat}
+                      </span>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setCreatingForDate(fecha)}
+                    className="ml-1 p-1.5 rounded-xl text-stone-400 hover:text-accent hover:bg-white/40 transition-all"
+                    title="Agregar actividad"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                  </button>
                 </div>
               </div>
 
@@ -116,12 +138,23 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
                           <p className="text-xs text-stone-400 mt-0.5">{item.description}</p>
                         )}
                       </div>
-                      <button
-                        onClick={() => setEditingItem(item)}
-                        className="text-xs text-stone-300 hover:text-accent opacity-0 group-hover:opacity-100 transition-all shrink-0 px-2 py-1 rounded-xl hover:bg-white/40"
-                      >
-                        Editar
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => setEditingItem(item)}
+                          className="text-xs text-stone-400 hover:text-accent px-2 py-1 rounded-xl hover:bg-white/40 transition-all"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="text-xs text-stone-300 hover:text-red-500 opacity-0 group-hover:opacity-100 p-1 rounded-xl hover:bg-red-50/40 transition-all"
+                          title="Eliminar"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -137,57 +170,96 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
         })}
       </div>
 
-      {/* Inline edit modal */}
       {editingItem && (
-        <EditModal
+        <ItemModal
+          mode="edit"
           item={editingItem}
           onSave={handleSaveEdit}
           onClose={() => setEditingItem(null)}
+        />
+      )}
+
+      {creatingForDate && (
+        <ItemModal
+          mode="create"
+          date={creatingForDate}
+          onCreate={handleCreate}
+          onClose={() => setCreatingForDate(null)}
         />
       )}
     </div>
   );
 }
 
-function EditModal({ item, onSave, onClose }: { item: ItineraryItem; onSave: (i: ItineraryItem) => void; onClose: () => void }) {
-  const [form, setForm] = useState(item);
+type ItemModalProps =
+  | { mode: "edit"; item: ItineraryItem; onSave: (i: ItineraryItem) => void; onClose: () => void }
+  | { mode: "create"; date: string; onCreate: (data: Partial<ItineraryItem>) => void; onClose: () => void };
+
+function ItemModal(props: ItemModalProps) {
   const inputClass = "glass-input";
   const labelClass = "block text-xs font-medium text-stone-500 mb-1";
+
+  const [form, setForm] = useState<Partial<ItineraryItem>>(
+    props.mode === "edit"
+      ? props.item
+      : { date: props.date, title: "", category: "actividad", alertLevel: "green", time: "", description: "", city: "", country: "", status: "pendiente" }
+  );
+
+  function handleSubmit() {
+    if (props.mode === "edit") props.onSave(form as ItineraryItem);
+    else props.onCreate(form);
+  }
 
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade">
       <div className="glass-card-solid rounded-2xl shadow-glass-lg w-full max-w-lg">
         <div className="px-6 py-4 border-b border-white/15 flex justify-between items-center">
-          <h2 className="text-lg font-display font-semibold text-stone-800">Editar item</h2>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/40 transition-colors">&times;</button>
+          <h2 className="text-lg font-display font-semibold text-stone-800">
+            {props.mode === "edit" ? "Editar item" : "Nuevo item"}
+          </h2>
+          <button onClick={props.onClose} className="text-stone-400 hover:text-stone-600 w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/40 transition-colors">&times;</button>
         </div>
         <div className="p-6 space-y-4">
           <div>
             <label className={labelClass}>Titulo</label>
-            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>Descripcion</label>
-            <textarea value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className={`${inputClass} resize-none`} />
+            <input value={form.title ?? ""} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} placeholder="Vuelo a Roma, Check-in hotel..." />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <label className={labelClass}>Categoria</label>
+              <select value={form.category ?? "actividad"} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputClass}>
+                {ITINERARY_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{CATEGORIA_LABELS[c] ?? c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className={labelClass}>Hora</label>
               <input type="time" value={form.time ?? ""} onChange={(e) => setForm({ ...form, time: e.target.value })} className={inputClass} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Ciudad</label>
+              <input value={form.city ?? ""} onChange={(e) => setForm({ ...form, city: e.target.value })} className={inputClass} placeholder="Roma" />
             </div>
             <div>
               <label className={labelClass}>Nivel de alerta</label>
               <select value={form.alertLevel ?? "green"} onChange={(e) => setForm({ ...form, alertLevel: e.target.value })} className={inputClass}>
                 <option value="green">Seguro</option>
-                <option value="yellow">{"Atenci\u00F3n"}</option>
-                <option value="red">{"Cr\u00EDtico"}</option>
+                <option value="yellow">Atención</option>
+                <option value="red">Crítico</option>
               </select>
             </div>
           </div>
+          <div>
+            <label className={labelClass}>Descripcion</label>
+            <textarea value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className={`${inputClass} resize-none`} />
+          </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={onClose} className="px-4 py-2.5 text-sm text-stone-500 hover:text-stone-700 rounded-2xl hover:bg-white/40 transition-colors">Cancelar</button>
-            <button onClick={() => onSave(form)} className="px-6 py-2.5 text-sm bg-accent text-white rounded-2xl hover:bg-terra-500 font-medium shadow-glass-sm hover:shadow-glass transition-all">
-              Guardar
+            <button onClick={props.onClose} className="px-4 py-2.5 text-sm text-stone-500 hover:text-stone-700 rounded-2xl hover:bg-white/40 transition-colors">Cancelar</button>
+            <button onClick={handleSubmit} disabled={!form.title?.trim()} className="px-6 py-2.5 text-sm bg-accent text-white rounded-2xl hover:bg-terra-500 font-medium shadow-glass-sm hover:shadow-glass transition-all disabled:opacity-40">
+              {props.mode === "edit" ? "Guardar" : "Agregar"}
             </button>
           </div>
         </div>
