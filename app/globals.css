@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background: linear-gradient(145deg, #F7F3EE 0%, #EDE8E1 40%, #F0ECE6 100%);
+    color: #2C2925;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/60 backdrop-blur-xl border border-white/20 shadow-glass;
+  }
+  .glass-card-solid {
+    @apply bg-white/80 backdrop-blur-xl border border-white/25 shadow-glass;
+  }
+  .glass-card-hover {
+    @apply hover:bg-white/75 hover:shadow-glass-lg transition-all duration-300;
+  }
+}
+
+/* Smooth transitions for interactive elements */
+button, a, input, select, textarea {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Elegant scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(140, 130, 115, 0.3);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 130, 115, 0.5);
+}
+
+/* Staggered fade-in */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  opacity: 0;
+}
+.animate-fade {
+  animation: fadeIn 0.4s ease-out forwards;
+  opacity: 0;
+}
+
+/* Glass input */
+.glass-input {
+  @apply w-full px-4 py-3 rounded-2xl bg-white/50 backdrop-blur-sm border border-white/30 text-sm;
+  @apply focus:outline-none focus:bg-white/70 focus:ring-0;
+  &:focus { border-color: rgba(139, 111, 78, 0.3); }
+  @apply placeholder:text-stone-400;
+}

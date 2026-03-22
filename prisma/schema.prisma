@@ -1,0 +1,158 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── TRIP ───────────────────────────────────────────────
+model Trip {
+  id         String   @id @default(uuid())
+  name       String
+  startDate  String
+  endDate    String
+  coverImage String?
+  createdAt  DateTime @default(now())
+
+  reservations   Reservation[]
+  itineraryItems ItineraryItem[]
+  checklistItems ChecklistItem[]
+  locations      Location[]
+  expenses       Expense[]
+  config         TripConfig[]
+
+  @@map("trips")
+}
+
+// ─── USER ───────────────────────────────────────────────
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  avatar    String?
+  role      String   @default("traveler")
+  createdAt DateTime @default(now())
+
+  @@map("users")
+}
+
+// ─── TRIP CONFIG (key-value per trip) ───────────────────
+model TripConfig {
+  id     String @id @default(uuid())
+  tripId String
+  key    String
+  value  String
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, key])
+  @@map("trip_config")
+}
+
+// ─── RESERVATION ────────────────────────────────────────
+model Reservation {
+  id                 String   @id @default(uuid())
+  tripId             String
+  type               String
+  subtype            String?
+  title              String
+  city               String
+  country            String
+  provider           String?
+  confirmationNumber String?
+  reservationUrl     String?
+  price              Float    @default(0)
+  currency           String   @default("EUR")
+  priceUSD           Float    @default(0)
+  notes              String?
+  attachmentUrl      String?
+  status             String   @default("por-reservar")
+  priority           String   @default("media")
+  startDate          String
+  endDate            String?
+  freeCancellation   Boolean  @default(false)
+  paid               Boolean  @default(false)
+  deadlineDate       String?
+  alert              String?
+  travelers          Int      @default(2)
+  createdAt          DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@map("reservations")
+}
+
+// ─── ITINERARY ITEM ─────────────────────────────────────
+model ItineraryItem {
+  id            String   @id @default(uuid())
+  tripId        String
+  date          String
+  time          String?
+  title         String
+  description   String?
+  city          String
+  country       String
+  category      String
+  status        String   @default("planned")
+  alertLevel    String?
+  reservationId String?
+  createdAt     DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_items")
+}
+
+// ─── CHECKLIST ITEM ─────────────────────────────────────
+model ChecklistItem {
+  id        String   @id @default(uuid())
+  tripId    String
+  title     String
+  completed Boolean  @default(false)
+  category  String?
+  createdAt DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@map("checklist_items")
+}
+
+// ─── LOCATION ───────────────────────────────────────────
+model Location {
+  id          String  @id @default(uuid())
+  tripId      String
+  city        String
+  country     String
+  lat         Float?
+  lng         Float?
+  image       String?
+  description String?
+  notes       String?
+  orderIndex  Int     @default(0)
+  dateRange   String?
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@map("locations")
+}
+
+// ─── EXPENSE ────────────────────────────────────────────
+model Expense {
+  id          String   @id @default(uuid())
+  tripId      String
+  category    String
+  amount      Float
+  currency    String   @default("EUR")
+  amountUSD   Float    @default(0)
+  description String?
+  date        String
+  createdAt   DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@map("expenses")
+}
