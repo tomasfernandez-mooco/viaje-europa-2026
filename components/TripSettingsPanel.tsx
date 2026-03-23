@@ -556,6 +556,7 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
                             <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} className="glass-input !py-2 !px-3 text-sm !w-auto">
                               <option value="editor">Editor</option>
                               <option value="viewer">Lector</option>
+                              <option value="junior">Junior (sin presupuesto)</option>
                             </select>
                             <button type="submit" disabled={inviting} className="flex-1 px-4 py-2 text-sm bg-accent text-white rounded-2xl hover:bg-terra-500 font-medium transition-colors disabled:opacity-50">
                               {inviting ? "Invitando..." : "Invitar"}

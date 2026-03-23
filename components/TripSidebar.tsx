@@ -19,6 +19,7 @@ type Props = {
   userName: string;
   userId: string;
   tripOwnerId: string | null;
+  tripMemberRole?: string | null;
   allTrips: TripStub[];
 };
 
@@ -33,7 +34,7 @@ const icons: Record<string, JSX.Element> = {
   mapa:        <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m0 0l-3 3m3-3l3 3m0-12.75V15m0 0l3 3m-3-3l-3 3M5.25 4.5h13.5a1.5 1.5 0 011.5 1.5v13.5a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V6a1.5 1.5 0 011.5-1.5z" /></svg>,
 };
 
-export default function TripSidebar({ tripId, tripName, startDate, endDate, coverImage, userRole, userName, userId, tripOwnerId, allTrips }: Props) {
+export default function TripSidebar({ tripId, tripName, startDate, endDate, coverImage, userRole, userName, userId, tripOwnerId, tripMemberRole, allTrips }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
@@ -45,11 +46,12 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
   const [profileSaving, setProfileSaving] = useState(false);
 
   const base = `/trips/${tripId}`;
+  const isJunior = tripMemberRole === "junior";
   const navItems = [
     { href: base, label: "Dashboard", key: "dashboard" },
     { href: `${base}/itinerario`, label: "Itinerario", key: "itinerario" },
     { href: `${base}/reservas`, label: "Reservas", key: "reservas" },
-    ...(userRole !== "traveler" ? [{ href: `${base}/presupuesto`, label: "Presupuesto", key: "presupuesto" }] : []),
+    ...(!isJunior ? [{ href: `${base}/presupuesto`, label: "Presupuesto", key: "presupuesto" }] : []),
     { href: `${base}/checklist`, label: "Checklist", key: "checklist" },
     { href: `${base}/gastos`, label: "Gastos", key: "gastos" },
     { href: `${base}/calendario`, label: "Calendario", key: "calendario" },
