@@ -84,14 +84,7 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
         {/* Trip header + switcher */}
         <div className="p-4" ref={switcherRef}>
           {/* Cover image */}
-          {coverImage && (
-            <div className="w-full h-20 rounded-xl overflow-hidden mb-3 ring-1 ring-white/10 shadow-lg">
-              <img src={coverImage} alt={tripName} className="w-full h-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-            </div>
-          )}
-
-          {/* Trip name + switcher + new trip */}
+          {/* Trip name + switcher */}
           <div className="flex items-start gap-1">
           <button
             onClick={() => setSwitcherOpen((o) => !o)}
@@ -245,11 +238,16 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
           <div className="flex items-center justify-between px-2 py-2">
             <button
               onClick={() => setProfileOpen(true)}
-              className="min-w-0 hover:opacity-80 transition-opacity text-left"
+              className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition-opacity text-left"
               title="Editar perfil"
             >
-              <p className="text-xs font-medium text-slate-300 leading-tight truncate">{userName}</p>
-              <p className="text-[10px] text-slate-600 capitalize">{userRole}</p>
+              <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center text-white text-xs font-bold ring-2 ring-accent/20 shrink-0">
+                {userName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-300 leading-tight truncate">{userName}</p>
+                <p className="text-[10px] text-slate-600 capitalize">{userRole}</p>
+              </div>
             </button>
             <button onClick={logout} className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors shrink-0 ml-2">
               Salir
@@ -290,17 +288,11 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
                   required
                 />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-c-muted mb-1">Avatar (URL de imagen)</label>
-                <input
-                  value={profileForm.avatar}
-                  onChange={(e) => setProfileForm((f) => ({ ...f, avatar: e.target.value }))}
-                  placeholder="https://..."
-                  className="glass-input"
-                />
-                {profileForm.avatar && (
-                  <img src={profileForm.avatar} alt="preview" className="mt-2 w-12 h-12 rounded-full object-cover border border-c-border" />
-                )}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10">
+                <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white text-base font-bold shrink-0">
+                  {profileForm.name.charAt(0).toUpperCase() || "?"}
+                </div>
+                <p className="text-xs text-c-muted">El avatar usa la inicial de tu nombre</p>
               </div>
               <div className="flex justify-end gap-2 pt-1">
                 <button type="button" onClick={() => setProfileOpen(false)} className="px-4 py-2 text-sm text-c-muted hover:text-c-text rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors">Cancelar</button>
