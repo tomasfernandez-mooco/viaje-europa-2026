@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/components/ThemeProvider";
 import { getDaysUntil } from "@/lib/types";
 import TripMembersPanel from "@/components/TripMembersPanel";
+import TripSettingsPanel from "@/components/TripSettingsPanel";
 
 type TripStub = { id: string; name: string; coverImage?: string | null };
 
@@ -198,10 +199,22 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
         </nav>
 
         {/* Members panel */}
-        <div className="px-3 pb-2">
+        <div className="px-3 pb-1">
           <TripMembersPanel
             tripId={tripId}
             currentUserId={userId}
+            isOwner={tripOwnerId === userId || userRole === "admin"}
+          />
+        </div>
+
+        {/* Settings panel */}
+        <div className="px-3 pb-2">
+          <TripSettingsPanel
+            tripId={tripId}
+            tripName={tripName}
+            startDate={startDate}
+            endDate={endDate}
+            coverImage={coverImage}
             isOwner={tripOwnerId === userId || userRole === "admin"}
           />
         </div>
@@ -346,6 +359,23 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
           );
         })}
       </nav>
+
+      {/* Mobile: floating settings + members triggers above bottom nav */}
+      <div className="md:hidden fixed bottom-16 right-3 z-40 flex flex-col gap-2 items-end">
+        <TripMembersPanel
+          tripId={tripId}
+          currentUserId={userId}
+          isOwner={tripOwnerId === userId || userRole === "admin"}
+        />
+        <TripSettingsPanel
+          tripId={tripId}
+          tripName={tripName}
+          startDate={startDate}
+          endDate={endDate}
+          coverImage={coverImage}
+          isOwner={tripOwnerId === userId || userRole === "admin"}
+        />
+      </div>
     </>
   );
 }

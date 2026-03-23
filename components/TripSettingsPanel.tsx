@@ -1,0 +1,362 @@
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+type Location = {
+  id: string;
+  city: string;
+  country: string;
+  lat?: number | null;
+  lng?: number | null;
+  image?: string | null;
+  description?: string | null;
+  dateRange?: string | null;
+  orderIndex: number;
+};
+
+type Props = {
+  tripId: string;
+  tripName: string;
+  startDate: string;
+  endDate: string;
+  coverImage?: string | null;
+  isOwner: boolean;
+};
+
+export default function TripSettingsPanel({ tripId, tripName, startDate, endDate, coverImage, isOwner }: Props) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"viaje" | "destinos">("viaje");
+
+  // Trip form
+  const [tripForm, setTripForm] = useState({ name: tripName, startDate, endDate, coverImage: coverImage ?? "" });
+  const [savingTrip, setSavingTrip] = useState(false);
+  const [tripSaved, setTripSaved] = useState(false);
+
+  // Locations
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [loadingLocs, setLoadingLocs] = useState(false);
+  const [editingLoc, setEditingLoc] = useState<Location | null>(null);
+  const [locForm, setLocForm] = useState({ city: "", country: "", lat: "", lng: "", image: "", description: "", dateRange: "" });
+  const [addingNew, setAddingNew] = useState(false);
+  const [savingLoc, setSavingLoc] = useState(false);
+
+  useEffect(() => {
+    if (open && tab === "destinos" && locations.length === 0) {
+      setLoadingLocs(true);
+      fetch(`/api/trips/${tripId}/locations`)
+        .then(r => r.json())
+        .then(data => { setLocations(Array.isArray(data) ? data.sort((a: Location, b: Location) => a.orderIndex - b.orderIndex) : []); setLoadingLocs(false); });
+    }
+  }, [open, tab, tripId]);
+
+  // Reset tripForm when tripName/dates change from outside
+  useEffect(() => {
+    setTripForm({ name: tripName, startDate, endDate, coverImage: coverImage ?? "" });
+  }, [tripName, startDate, endDate, coverImage]);
+
+  async function handleSaveTrip(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingTrip(true);
+    await fetch(`/api/trips/${tripId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: tripForm.name,
+        startDate: tripForm.startDate,
+        endDate: tripForm.endDate,
+        coverImage: tripForm.coverImage || null,
+      }),
+    });
+    setSavingTrip(false);
+    setTripSaved(true);
+    setTimeout(() => setTripSaved(false), 2000);
+    router.refresh();
+  }
+
+  function startEditLoc(loc: Location) {
+    setEditingLoc(loc);
+    setAddingNew(false);
+    setLocForm({
+      city: loc.city,
+      country: loc.country,
+      lat: loc.lat != null ? String(loc.lat) : "",
+      lng: loc.lng != null ? String(loc.lng) : "",
+      image: loc.image ?? "",
+      description: loc.description ?? "",
+      dateRange: loc.dateRange ?? "",
+    });
+  }
+
+  function startNewLoc() {
+    setEditingLoc(null);
+    setAddingNew(true);
+    setLocForm({ city: "", country: "", lat: "", lng: "", image: "", description: "", dateRange: "" });
+  }
+
+  async function handleSaveLoc(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingLoc(true);
+    const payload = {
+      city: locForm.city,
+      country: locForm.country,
+      lat: locForm.lat ? Number(locForm.lat) : null,
+      lng: locForm.lng ? Number(locForm.lng) : null,
+      image: locForm.image || null,
+      description: locForm.description || null,
+      dateRange: locForm.dateRange || null,
+    };
+
+    if (addingNew) {
+      const res = await fetch(`/api/trips/${tripId}/locations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, orderIndex: locations.length }),
+      });
+      const created = await res.json();
+      setLocations(prev => [...prev, created]);
+    } else if (editingLoc) {
+      const res = await fetch(`/api/trips/${tripId}/locations/${editingLoc.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const updated = await res.json();
+      setLocations(prev => prev.map(l => l.id === editingLoc.id ? updated : l));
+    }
+
+    setSavingLoc(false);
+    setEditingLoc(null);
+    setAddingNew(false);
+  }
+
+  async function handleDeleteLoc(id: string) {
+    if (!confirm("¿Eliminar este destino?")) return;
+    await fetch(`/api/trips/${tripId}/locations/${id}`, { method: "DELETE" });
+    setLocations(prev => prev.filter(l => l.id !== id));
+  }
+
+  const inputClass = "w-full glass-input !py-2 !px-3 text-sm";
+
+  return (
+    <>
+      {/* Trigger button — gear icon */}
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-xl transition-colors"
+        title="Configuración del viaje"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Configurar viaje
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)}>
+          <div className="w-full max-w-lg max-h-[90vh] flex flex-col glass-card-solid rounded-3xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-c-border shrink-0">
+              <h2 className="text-lg font-display font-semibold text-c-heading">Configurar viaje</h2>
+              <button onClick={() => setOpen(false)} className="text-c-muted hover:text-c-text transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-1 px-6 pt-3 shrink-0">
+              {(["viaje", "destinos"] as const).map(t => (
+                <button key={t} onClick={() => setTab(t)}
+                  className={`px-4 py-1.5 text-sm font-medium rounded-xl capitalize transition-all ${tab === t ? "bg-accent text-white shadow-sm" : "text-c-muted hover:text-c-text"}`}>
+                  {t === "viaje" ? "Viaje" : "Destinos"}
+                </button>
+              ))}
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+
+              {/* ── Tab: Viaje ── */}
+              {tab === "viaje" && (
+                <form onSubmit={handleSaveTrip} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-c-muted uppercase tracking-wider block mb-1.5">Nombre del viaje</label>
+                    <input value={tripForm.name} onChange={e => setTripForm(f => ({ ...f, name: e.target.value }))}
+                      className={inputClass} required />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-c-muted uppercase tracking-wider block mb-1.5">Fecha inicio</label>
+                      <input type="date" value={tripForm.startDate} onChange={e => setTripForm(f => ({ ...f, startDate: e.target.value }))}
+                        className={inputClass} required />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-c-muted uppercase tracking-wider block mb-1.5">Fecha fin</label>
+                      <input type="date" value={tripForm.endDate} onChange={e => setTripForm(f => ({ ...f, endDate: e.target.value }))}
+                        className={inputClass} required />
+                    </div>
+                  </div>
+                  {tripForm.startDate && tripForm.endDate && (
+                    <p className="text-xs text-c-muted">
+                      {Math.ceil((new Date(tripForm.endDate).getTime() - new Date(tripForm.startDate).getTime()) / 86400000) + 1} días
+                    </p>
+                  )}
+                  <div>
+                    <label className="text-xs font-semibold text-c-muted uppercase tracking-wider block mb-1.5">Imagen de portada (URL)</label>
+                    <input value={tripForm.coverImage} onChange={e => setTripForm(f => ({ ...f, coverImage: e.target.value }))}
+                      placeholder="https://..." className={inputClass} />
+                    {tripForm.coverImage && (
+                      <img src={tripForm.coverImage} alt="" className="mt-2 w-full h-24 object-cover rounded-xl border border-c-border"
+                        onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    )}
+                  </div>
+                  <button type="submit" disabled={savingTrip}
+                    className="w-full py-2.5 bg-accent text-white rounded-2xl text-sm font-medium hover:bg-terra-500 transition-colors disabled:opacity-50">
+                    {savingTrip ? "Guardando..." : tripSaved ? "✓ Guardado" : "Guardar cambios"}
+                  </button>
+                </form>
+              )}
+
+              {/* ── Tab: Destinos ── */}
+              {tab === "destinos" && (
+                <div className="space-y-3">
+                  {loadingLocs ? (
+                    <p className="text-sm text-c-muted text-center py-6">Cargando...</p>
+                  ) : (
+                    <>
+                      {/* Location list */}
+                      {locations.map((loc, i) => (
+                        <div key={loc.id} className={`rounded-2xl border transition-all ${editingLoc?.id === loc.id ? "border-accent/40 bg-accent/5" : "border-c-border bg-white/20 dark:bg-white/5"}`}>
+                          {editingLoc?.id === loc.id ? (
+                            /* Edit form inline */
+                            <form onSubmit={handleSaveLoc} className="p-4 space-y-3">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Ciudad</label>
+                                  <input value={locForm.city} onChange={e => setLocForm(f => ({ ...f, city: e.target.value }))} className={inputClass} required />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">País</label>
+                                  <input value={locForm.country} onChange={e => setLocForm(f => ({ ...f, country: e.target.value }))} className={inputClass} required />
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Latitud</label>
+                                  <input type="number" step="any" value={locForm.lat} onChange={e => setLocForm(f => ({ ...f, lat: e.target.value }))} className={inputClass} placeholder="48.8566" />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Longitud</label>
+                                  <input type="number" step="any" value={locForm.lng} onChange={e => setLocForm(f => ({ ...f, lng: e.target.value }))} className={inputClass} placeholder="2.3522" />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Fechas (ej: 15-19 jun)</label>
+                                <input value={locForm.dateRange} onChange={e => setLocForm(f => ({ ...f, dateRange: e.target.value }))} className={inputClass} placeholder="15-19 jun" />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Imagen (URL)</label>
+                                <input value={locForm.image} onChange={e => setLocForm(f => ({ ...f, image: e.target.value }))} className={inputClass} placeholder="https://..." />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Descripción</label>
+                                <textarea value={locForm.description} onChange={e => setLocForm(f => ({ ...f, description: e.target.value }))} rows={2} className={`${inputClass} resize-none`} />
+                              </div>
+                              <div className="flex gap-2">
+                                <button type="submit" disabled={savingLoc} className="flex-1 py-2 bg-accent text-white rounded-xl text-xs font-medium disabled:opacity-50">{savingLoc ? "Guardando..." : "Guardar"}</button>
+                                <button type="button" onClick={() => setEditingLoc(null)} className="px-4 py-2 text-xs text-c-muted hover:text-c-text rounded-xl border border-c-border transition-colors">Cancelar</button>
+                              </div>
+                            </form>
+                          ) : (
+                            /* List row */
+                            <div className="flex items-center gap-3 p-3">
+                              {loc.image && (
+                                <img src={loc.image} alt={loc.city} className="w-10 h-10 rounded-xl object-cover shrink-0 border border-c-border"
+                                  onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                              )}
+                              {!loc.image && (
+                                <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+                                  <span className="text-xs font-bold text-accent">{i + 1}</span>
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-c-heading">{loc.city}</p>
+                                <p className="text-xs text-c-muted">{loc.country}{loc.dateRange ? ` · ${loc.dateRange}` : ""}</p>
+                                {(!loc.lat || !loc.lng) && (
+                                  <p className="text-[10px] text-amber-500 mt-0.5">Sin coordenadas — no aparece en el mapa</p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button onClick={() => startEditLoc(loc)} className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-lg hover:bg-white/30 transition-colors">Editar</button>
+                                <button onClick={() => handleDeleteLoc(loc.id)} className="text-xs text-c-subtle hover:text-red-500 px-2 py-1 rounded-lg hover:bg-red-50/30 transition-colors">Eliminar</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {locations.length === 0 && !addingNew && (
+                        <div className="text-center py-8">
+                          <p className="text-sm text-c-muted">No hay destinos cargados</p>
+                        </div>
+                      )}
+
+                      {/* Add new location form */}
+                      {addingNew ? (
+                        <div className="rounded-2xl border border-accent/40 bg-accent/5">
+                          <form onSubmit={handleSaveLoc} className="p-4 space-y-3">
+                            <p className="text-xs font-semibold text-accent uppercase tracking-wider">Nuevo destino</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Ciudad</label>
+                                <input value={locForm.city} onChange={e => setLocForm(f => ({ ...f, city: e.target.value }))} className={inputClass} required autoFocus />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">País</label>
+                                <input value={locForm.country} onChange={e => setLocForm(f => ({ ...f, country: e.target.value }))} className={inputClass} required />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Latitud</label>
+                                <input type="number" step="any" value={locForm.lat} onChange={e => setLocForm(f => ({ ...f, lat: e.target.value }))} className={inputClass} placeholder="48.8566" />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Longitud</label>
+                                <input type="number" step="any" value={locForm.lng} onChange={e => setLocForm(f => ({ ...f, lng: e.target.value }))} className={inputClass} placeholder="2.3522" />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Fechas (ej: 15-19 jun)</label>
+                              <input value={locForm.dateRange} onChange={e => setLocForm(f => ({ ...f, dateRange: e.target.value }))} className={inputClass} placeholder="15-19 jun" />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Imagen (URL)</label>
+                              <input value={locForm.image} onChange={e => setLocForm(f => ({ ...f, image: e.target.value }))} className={inputClass} placeholder="https://..." />
+                            </div>
+                            <div className="flex gap-2">
+                              <button type="submit" disabled={savingLoc} className="flex-1 py-2 bg-accent text-white rounded-xl text-xs font-medium disabled:opacity-50">{savingLoc ? "Guardando..." : "Agregar destino"}</button>
+                              <button type="button" onClick={() => setAddingNew(false)} className="px-4 py-2 text-xs text-c-muted hover:text-c-text rounded-xl border border-c-border transition-colors">Cancelar</button>
+                            </div>
+                          </form>
+                        </div>
+                      ) : (
+                        <button onClick={startNewLoc}
+                          className="w-full py-3 text-sm text-c-muted border border-dashed border-c-border rounded-2xl hover:border-accent hover:text-accent transition-all">
+                          + Agregar destino
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
