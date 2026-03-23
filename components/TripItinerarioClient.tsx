@@ -610,6 +610,7 @@ function ItemModal(props: ItemModalProps) {
                 className={inputClass}
               >
                 <option value="pendiente">Pendiente</option>
+                <option value="definido">Definido (sin comprar)</option>
                 <option value="confirmado">Confirmado</option>
                 <option value="cancelado">Cancelado</option>
               </select>
