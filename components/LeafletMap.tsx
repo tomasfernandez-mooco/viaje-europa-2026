@@ -11,6 +11,7 @@ type MarkerData = {
   description?: string | null;
   dateRange?: string | null;
   selected?: boolean;
+  variant?: "location" | "itinerary";
 };
 
 type Props = {
@@ -75,12 +76,15 @@ export default function LeafletMap({ markers, selectedId, onMarkerClick, classNa
     // Add markers
     validMarkers.forEach((m, i) => {
       const isSelected = m.id === selectedId;
+      const isItinerary = m.variant === "itinerary";
+      const fillColor = isSelected ? (isItinerary ? "#6366f1" : "#8B6F4E") : (isItinerary ? "#818cf8" : "#1C1917");
+      const borderColor = isSelected ? (isItinerary ? "#a5b4fc" : "#C4A97D") : (isItinerary ? "#6366f1" : "#8B6F4E");
       const marker = L.circleMarker([m.lat, m.lng], {
-        radius: isSelected ? 10 : 6,
-        fillColor: isSelected ? "#8B6F4E" : "#1C1917",
-        color: isSelected ? "#C4A97D" : "#8B6F4E",
+        radius: isSelected ? 10 : (isItinerary ? 5 : 6),
+        fillColor,
+        color: borderColor,
         weight: isSelected ? 3 : 1.5,
-        fillOpacity: isSelected ? 1 : 0.8,
+        fillOpacity: isSelected ? 1 : (isItinerary ? 0.7 : 0.8),
       }).addTo(map);
 
       // Tooltip

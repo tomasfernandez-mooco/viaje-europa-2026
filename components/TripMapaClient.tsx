@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { Location, Reservation, CATEGORIA_LABELS, formatMoney } from "@/lib/types";
 
@@ -9,16 +9,59 @@ const LeafletMap = dynamic(() => import("./LeafletMap"), { ssr: false, loading: 
   </div>
 )});
 
+type ItineraryPlace = { city: string; country: string; date: string };
+type GeocodedPlace = { id: string; city: string; lat: number; lng: number; date: string };
+
 type Props = {
   tripId: string;
   locations: Location[];
   reservations: Reservation[];
+  itineraryPlaces?: ItineraryPlace[];
 };
 
-export default function TripMapaClient({ tripId, locations, reservations }: Props) {
+export default function TripMapaClient({ tripId, locations, reservations, itineraryPlaces = [] }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState<string>("");
   const [savingNotes, setSavingNotes] = useState(false);
+  const [geocodedItinerary, setGeocodedItinerary] = useState<GeocodedPlace[]>([]);
+
+  // Geocode itinerary cities not already covered by a Location record
+  useEffect(() => {
+    const locationCities = new Set(locations.map((l) => l.city.toLowerCase().trim()));
+    const toGeocode = itineraryPlaces.filter(
+      (p) => !locationCities.has(p.city.toLowerCase().trim())
+    );
+    if (toGeocode.length === 0) return;
+
+    async function geocodeAll() {
+      const results: GeocodedPlace[] = [];
+      for (const place of toGeocode) {
+        try {
+          const q = encodeURIComponent(`${place.city}, ${place.country}`);
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`,
+            { headers: { "Accept-Language": "en" } }
+          );
+          const data = await res.json();
+          if (data[0]) {
+            results.push({
+              id: `itin-${place.city.toLowerCase().replace(/\s+/g, "-")}`,
+              city: place.city,
+              lat: parseFloat(data[0].lat),
+              lng: parseFloat(data[0].lon),
+              date: place.date,
+            });
+          }
+        } catch {
+          // skip on error
+        }
+        // Nominatim rate limit: 1 req/s
+        await new Promise((r) => setTimeout(r, 1100));
+      }
+      setGeocodedItinerary(results);
+    }
+    geocodeAll();
+  }, [itineraryPlaces, locations]);
 
   const selectedLoc = locations.find((l) => l.id === selected);
   const selectedReservations = selectedLoc
@@ -62,7 +105,7 @@ export default function TripMapaClient({ tripId, locations, reservations }: Prop
     }
   }
 
-  const mapMarkers = locations
+  const locationMarkers = locations
     .filter((l) => l.lat && l.lng)
     .map((l) => ({
       id: l.id,
@@ -71,13 +114,28 @@ export default function TripMapaClient({ tripId, locations, reservations }: Prop
       lng: l.lng!,
       description: l.description,
       dateRange: l.dateRange,
+      variant: "location" as const,
     }));
+
+  const itineraryMarkers = geocodedItinerary.map((p) => ({
+    id: p.id,
+    city: p.city,
+    lat: p.lat,
+    lng: p.lng,
+    dateRange: p.date,
+    variant: "itinerary" as const,
+  }));
+
+  const mapMarkers = [...locationMarkers, ...itineraryMarkers];
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-display text-c-heading tracking-tight">Mapa de Ruta</h1>
-        <p className="text-sm text-c-muted mt-1">{locations.length} destinos</p>
+        <p className="text-sm text-c-muted mt-1">
+          {locations.length} destinos guardados
+          {itineraryPlaces.length > 0 && ` · ${itineraryPlaces.length} paradas del itinerario`}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -91,6 +149,20 @@ export default function TripMapaClient({ tripId, locations, reservations }: Prop
               className="w-full h-[450px] md:h-[520px]"
             />
           </div>
+
+          {/* Legend */}
+          {itineraryMarkers.length > 0 && (
+            <div className="flex items-center gap-4 px-1">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-[#1C1917] border border-[#8B6F4E] shrink-0" />
+                <span className="text-[11px] text-c-muted">Destinos</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#818cf8] border border-[#6366f1] shrink-0" />
+                <span className="text-[11px] text-c-muted">Paradas del itinerario</span>
+              </div>
+            </div>
+          )}
 
           {/* Route strip */}
           <div className="glass-card rounded-2xl p-4">
