@@ -51,6 +51,7 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
   const [locForm, setLocForm] = useState({ city: "", country: "", lat: "", lng: "", image: "", description: "", dateRange: "" });
   const [addingNew, setAddingNew] = useState(false);
   const [savingLoc, setSavingLoc] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
 
   useEffect(() => {
     if (open && tab === "destinos" && locations.length === 0) {
@@ -154,6 +155,24 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
     if (!confirm("¿Eliminar este destino?")) return;
     await fetch(`/api/trips/${tripId}/locations/${id}`, { method: "DELETE" });
     setLocations(prev => prev.filter(l => l.id !== id));
+  }
+
+  async function handleGeocode(city: string, country: string, setForm: React.Dispatch<React.SetStateAction<typeof locForm>>) {
+    if (!city) return;
+    setGeocoding(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + (country ? ", " + country : ""))}&format=json&limit=1`,
+        { headers: { "Accept-Language": "es" } }
+      );
+      const data = await res.json();
+      if (data.length > 0) {
+        setForm(f => ({ ...f, lat: String(parseFloat(data[0].lat).toFixed(6)), lng: String(parseFloat(data[0].lon).toFixed(6)) }));
+      } else {
+        alert("No se encontraron coordenadas para esa ciudad");
+      }
+    } catch { alert("Error al buscar coordenadas"); }
+    setGeocoding(false);
   }
 
   async function handleInvite(e: React.FormEvent) {
@@ -284,6 +303,19 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
                                   <input value={locForm.country} onChange={e => setLocForm(f => ({ ...f, country: e.target.value }))} className={inputClass} required />
                                 </div>
                               </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-semibold text-c-muted uppercase tracking-wider">Coordenadas</span>
+                                <button type="button" onClick={() => handleGeocode(locForm.city, locForm.country, setLocForm)}
+                                  disabled={geocoding || !locForm.city}
+                                  className="text-xs text-accent hover:underline flex items-center gap-1 disabled:opacity-50">
+                                  {geocoding ? (
+                                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                    </svg>
+                                  ) : "🔍"} Buscar coordenadas
+                                </button>
+                              </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
                                   <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Latitud</label>
@@ -359,6 +391,19 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
                                 <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">País</label>
                                 <input value={locForm.country} onChange={e => setLocForm(f => ({ ...f, country: e.target.value }))} className={inputClass} required />
                               </div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-semibold text-c-muted uppercase tracking-wider">Coordenadas</span>
+                              <button type="button" onClick={() => handleGeocode(locForm.city, locForm.country, setLocForm)}
+                                disabled={geocoding || !locForm.city}
+                                className="text-xs text-accent hover:underline flex items-center gap-1 disabled:opacity-50">
+                                {geocoding ? (
+                                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                  </svg>
+                                ) : "🔍"} Buscar coordenadas
+                              </button>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                               <div>
