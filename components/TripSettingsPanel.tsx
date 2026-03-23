@@ -44,6 +44,25 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState("");
 
+  // Cover image upload
+  const [uploading, setUploading] = useState(false);
+
+  async function handleCoverUpload(file: File) {
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setTripForm(f => ({ ...f, coverImage: data.url }));
+      } else {
+        alert(data.error ?? "Error al subir imagen");
+      }
+    } catch { alert("Error de conexión"); }
+    setUploading(false);
+  }
+
   // Locations
   const [locations, setLocations] = useState<Location[]>([]);
   const [loadingLocs, setLoadingLocs] = useState(false);
@@ -265,12 +284,56 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
                     </p>
                   )}
                   <div>
-                    <label className="text-xs font-semibold text-c-muted uppercase tracking-wider block mb-1.5">Imagen de portada (URL)</label>
-                    <input value={tripForm.coverImage} onChange={e => setTripForm(f => ({ ...f, coverImage: e.target.value }))}
-                      placeholder="https://..." className={inputClass} />
+                    <label className="text-xs font-semibold text-c-muted uppercase tracking-wider block mb-1.5">
+                      Imagen de portada
+                    </label>
+                    <label className={`flex items-center gap-2 cursor-pointer ${uploading ? "pointer-events-none" : ""}`}>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        disabled={uploading}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f); }}
+                      />
+                      <div className={`flex-1 glass-input !py-2.5 flex items-center gap-2 transition-colors ${uploading ? "opacity-60" : "hover:bg-white/20 cursor-pointer"}`}>
+                        {uploading ? (
+                          <>
+                            <svg className="w-4 h-4 animate-spin text-accent shrink-0" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                            </svg>
+                            <span className="text-xs text-c-muted">Subiendo imagen...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4 text-c-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                            </svg>
+                            <span className="text-xs text-c-muted">
+                              {tripForm.coverImage ? "Cambiar foto..." : "Seleccionar foto..."}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </label>
                     {tripForm.coverImage && (
-                      <img src={tripForm.coverImage} alt="" className="mt-2 w-full h-24 object-cover rounded-xl border border-c-border"
-                        onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      <div className="mt-2 relative rounded-xl overflow-hidden border border-c-border">
+                        <img
+                          src={tripForm.coverImage}
+                          alt=""
+                          className="w-full h-24 object-cover"
+                          onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setTripForm(f => ({ ...f, coverImage: "" }))}
+                          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     )}
                   </div>
                   <button type="submit" disabled={savingTrip}

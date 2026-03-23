@@ -166,14 +166,14 @@ export default function TripDashboardClient({ trip, reservations, config, locati
             <div className="h-full flex">
               <div className="bg-status-success h-full rounded-l-2xl transition-all duration-500" style={{ width: `${reservations.length ? (confirmados.length / reservations.length) * 100 : 0}%` }} />
               <div className="bg-status-warning h-full transition-all duration-500" style={{ width: `${reservations.length ? (pendientes.length / reservations.length) * 100 : 0}%` }} />
-              <div className="bg-status-danger/50 h-full transition-all duration-500" style={{ width: `${reservations.length ? (porReservar.length / reservations.length) * 100 : 0}%` }} />
+              <div className="bg-rose-400/70 h-full transition-all duration-500" style={{ width: `${reservations.length ? (porReservar.length / reservations.length) * 100 : 0}%` }} />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3 mt-4">
             {[
               { label: "Confirmado", count: confirmados.length, color: "bg-status-success" },
               { label: "Pendiente", count: pendientes.length, color: "bg-status-warning" },
-              { label: "Sin reservar", count: porReservar.length, color: "bg-status-danger/50" },
+              { label: "Sin reservar", count: porReservar.length, color: "bg-rose-400/70" },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <p className={`text-lg font-bold text-c-text`}>{s.count}</p>
@@ -200,7 +200,7 @@ export default function TripDashboardClient({ trip, reservations, config, locati
                     <div className="bg-status-warning flex items-center justify-center text-[10px] text-white font-semibold transition-all duration-300" style={{ flex: cat.pending }}>{cat.pending}</div>
                   )}
                   {cat.notBooked > 0 && (
-                    <div className="bg-status-danger/50 flex items-center justify-center text-[10px] text-white font-semibold transition-all duration-300" style={{ flex: cat.notBooked }}>{cat.notBooked}</div>
+                    <div className="bg-rose-400/70 flex items-center justify-center text-[10px] text-white font-semibold transition-all duration-300" style={{ flex: cat.notBooked }}>{cat.notBooked}</div>
                   )}
                 </div>
                 <span className="text-xs text-c-muted font-medium w-5 text-right">{cat.total}</span>

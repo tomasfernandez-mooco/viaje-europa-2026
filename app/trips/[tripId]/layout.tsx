@@ -1,6 +1,7 @@
 import prisma from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { canAccessTrip } from "@/lib/tripAccess";
 import TripSidebar from "@/components/TripSidebar";
 import { AuthProvider } from "@/lib/auth-context";
 
@@ -35,6 +36,8 @@ export default async function TripLayout({
   const allTrips = [...ownedTrips, ...memberTrips].filter(t => seen.has(t.id) ? false : seen.add(t.id) && true);
 
   if (!trip) notFound();
+  const hasAccess = await canAccessTrip(trip.id, user.id, user.role);
+  if (!hasAccess) notFound();
 
   return (
     <AuthProvider>

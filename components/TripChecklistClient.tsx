@@ -18,20 +18,21 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
   const completed = items.filter((i) => i.completed);
   const pending = items.filter((i) => !i.completed);
 
-  // Filtered pending items
-  const filteredPending = activeFilter === "todas"
-    ? pending
-    : pending.filter((i) => (i.category ?? "general") === activeFilter);
-
-  // Group filtered pending by category
-  const grouped: Record<string, ChecklistItem[]> = {};
-  filteredPending.forEach((item) => {
+  // Group ALL items by category (pending + completed together)
+  const grouped: Record<string, { pending: ChecklistItem[]; completed: ChecklistItem[] }> = {};
+  items.forEach((item) => {
     const cat = item.category ?? "general";
-    if (!grouped[cat]) grouped[cat] = [];
-    grouped[cat].push(item);
+    if (!grouped[cat]) grouped[cat] = { pending: [], completed: [] };
+    if (item.completed) grouped[cat].completed.push(item);
+    else grouped[cat].pending.push(item);
   });
 
-  // Category counts for filters
+  // For filter: only show categories matching activeFilter
+  const visibleCategories = activeFilter === "todas"
+    ? Object.keys(grouped).sort()
+    : Object.keys(grouped).filter(c => c === activeFilter).sort();
+
+  // Category counts (pending only) for filter badges
   const categoryCounts: Record<string, number> = {};
   pending.forEach((item) => {
     const cat = item.category ?? "general";
@@ -174,76 +175,82 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
         </div>
       )}
 
-      {/* Pending by category */}
-      {Object.entries(grouped).sort().map(([category, catItems]) => (
-        <div key={category} className="mb-5">
-          <h2 className="text-[11px] font-semibold text-c-muted uppercase tracking-widest mb-2.5 pl-1 flex items-center gap-2">
-            <span className="capitalize">{category}</span>
-            <span className="text-c-subtle">({catItems.length})</span>
-          </h2>
-          <div className="glass-card rounded-2xl divide-y divide-white/20 overflow-hidden">
-            {catItems.map((item) => (
-              <div key={item.id} className={`flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-white/30 ${loadingIds.has(item.id) ? "opacity-50 pointer-events-none" : ""}`}>
-                <button
-                  onClick={() => toggleItem(item)}
-                  disabled={loadingIds.has(item.id)}
-                  className="w-5 h-5 rounded-md border-2 border-stone-300 hover:border-accent flex items-center justify-center shrink-0 transition-colors disabled:opacity-50"
-                >
-                  {loadingIds.has(item.id) && (
-                    <svg className="w-3 h-3 animate-spin text-c-muted" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" /><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>
-                  )}
-                </button>
-                <p className="text-sm text-c-text flex-1">{item.title}</p>
-                <button
-                  onClick={() => deleteItem(item.id)}
-                  disabled={loadingIds.has(item.id)}
-                  className="text-xs text-c-subtle hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                >
-                  Eliminar
-                </button>
-              </div>
-            ))}
+      {/* Items grouped by category — pending + completed together */}
+      {visibleCategories.map((category) => {
+        const { pending: catPending, completed: catCompleted } = grouped[category];
+        const totalCat = catPending.length + catCompleted.length;
+        if (totalCat === 0) return null;
+        return (
+          <div key={category} className="mb-5">
+            <h2 className="text-[11px] font-semibold text-c-muted uppercase tracking-widest mb-2.5 pl-1 flex items-center gap-2">
+              <span className="capitalize">{category}</span>
+              <span className="text-c-subtle">{catCompleted.length}/{totalCat}</span>
+            </h2>
+            <div className="glass-card rounded-2xl divide-y divide-white/20 overflow-hidden">
+              {/* Pending items */}
+              {catPending.map((item) => (
+                <div key={item.id} className={`flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-white/30 ${loadingIds.has(item.id) ? "opacity-50 pointer-events-none" : ""}`}>
+                  <button
+                    onClick={() => toggleItem(item)}
+                    disabled={loadingIds.has(item.id)}
+                    className="w-5 h-5 rounded-md border-2 border-stone-300 dark:border-white/30 hover:border-accent flex items-center justify-center shrink-0 transition-colors disabled:opacity-50"
+                  >
+                    {loadingIds.has(item.id) && (
+                      <svg className="w-3 h-3 animate-spin text-c-muted" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" /><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>
+                    )}
+                  </button>
+                  <p className="text-sm text-c-text flex-1">{item.title}</p>
+                  <button
+                    onClick={() => deleteItem(item.id)}
+                    disabled={loadingIds.has(item.id)}
+                    className="text-xs text-c-subtle hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              ))}
+              {/* Completed items — same category, dimmed with strikethrough */}
+              {catCompleted.map((item) => (
+                <div key={item.id} className={`flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-white/20 opacity-55 ${loadingIds.has(item.id) ? "pointer-events-none" : ""}`}>
+                  <button
+                    onClick={() => toggleItem(item)}
+                    disabled={loadingIds.has(item.id)}
+                    className="w-5 h-5 rounded-md border-2 border-accent bg-accent flex items-center justify-center shrink-0 disabled:opacity-50"
+                  >
+                    {loadingIds.has(item.id) ? (
+                      <svg className="w-3 h-3 animate-spin text-white" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" /><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>
+                    ) : (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                    )}
+                  </button>
+                  <p className="text-sm text-c-muted line-through flex-1">{item.title}</p>
+                  <button
+                    onClick={() => deleteItem(item.id)}
+                    disabled={loadingIds.has(item.id)}
+                    className="text-xs text-c-subtle hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
-      {filteredPending.length === 0 && pending.length > 0 && activeFilter !== "todas" && (
+      {visibleCategories.length === 0 && activeFilter !== "todas" && (
         <div className="text-center py-8 glass-card rounded-2xl">
-          <p className="text-sm text-c-muted">No hay items pendientes en "{activeFilter}"</p>
+          <p className="text-sm text-c-muted">No hay items en "{activeFilter}"</p>
           <button onClick={() => setActiveFilter("todas")} className="text-xs text-accent mt-2 hover:underline">Ver todas</button>
         </div>
       )}
 
-      {pending.length === 0 && (
+      {items.length > 0 && pending.length === 0 && (
         <div className="text-center py-10 glass-card rounded-2xl">
           <p className="text-2xl mb-2">🎉</p>
           <p className="text-sm font-medium text-c-muted">¡Todo completado!</p>
-        </div>
-      )}
-
-      {/* Completed */}
-      {completed.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-[11px] font-semibold text-c-muted uppercase tracking-widest mb-2.5 pl-1">
-            Completados ({completed.length})
-          </h2>
-          <div className="glass-card rounded-2xl divide-y divide-white/15 overflow-hidden opacity-60">
-            {completed.map((item) => (
-              <div key={item.id} className={`flex items-center gap-3 px-4 py-3 group ${loadingIds.has(item.id) ? "opacity-50 pointer-events-none" : ""}`}>
-                <button
-                  onClick={() => toggleItem(item)}
-                  disabled={loadingIds.has(item.id)}
-                  className="w-5 h-5 rounded-md border-2 border-accent bg-accent flex items-center justify-center shrink-0 disabled:opacity-50"
-                >
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                </button>
-                <p className="text-sm text-c-muted line-through flex-1">{item.title}</p>
-                <span className="text-[10px] text-c-subtle capitalize">{item.category}</span>
-              </div>
-            ))}
-          </div>
         </div>
       )}
     </div>

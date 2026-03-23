@@ -20,6 +20,7 @@
     "@libsql/client": "^0.17.0",
     "@prisma/adapter-libsql": "^5.22.0",
     "@prisma/client": "^5.22.0",
+    "@vercel/blob": "^2.3.1",
     "bcryptjs": "^3.0.3",
     "caniuse-lite": "^1.0.30001779",
     "jose": "^6.2.1",

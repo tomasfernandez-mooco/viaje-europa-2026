@@ -10,7 +10,9 @@ export default async function TripsPage() {
   if (!user) redirect("/login");
 
   const trips = await prisma.trip.findMany({
-    where: user.role === "admin" ? {} : { userId: user.id },
+    where: user.role === "admin"
+      ? {}
+      : { OR: [{ userId: user.id }, { members: { some: { userId: user.id } } }] },
     orderBy: { startDate: "asc" },
   });
 
