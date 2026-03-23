@@ -44,23 +44,37 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState("");
 
-  // Cover image upload
+  // Cover image upload — client-side compress + base64 (no external service needed)
   const [uploading, setUploading] = useState(false);
 
   async function handleCoverUpload(file: File) {
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: form });
-      const data = await res.json();
-      if (res.ok && data.url) {
-        setTripForm(f => ({ ...f, coverImage: data.url }));
-      } else {
-        alert(data.error ?? "Error al subir imagen");
-      }
-    } catch { alert("Error de conexión"); }
+      const base64 = await compressImage(file, 1400, 0.82);
+      setTripForm(f => ({ ...f, coverImage: base64 }));
+    } catch { alert("Error al procesar la imagen"); }
     setUploading(false);
+  }
+
+  function compressImage(file: File, maxWidth: number, quality: number): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const scale = Math.min(1, maxWidth / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("canvas"));
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
   }
 
   // Locations
