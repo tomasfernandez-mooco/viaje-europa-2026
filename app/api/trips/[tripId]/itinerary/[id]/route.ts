@@ -35,9 +35,22 @@ export async function PUT(
   try {
     const { tripId, id } = await params;
     const body = await request.json();
+    const { date, time, title, description, city, country, category, status, alertLevel, reservationId, orderIndex } = body;
     const item = await prisma.itineraryItem.update({
       where: { id, tripId },
-      data: body,
+      data: {
+        ...(date !== undefined && { date }),
+        ...(time !== undefined && { time }),
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(city !== undefined && { city }),
+        ...(country !== undefined && { country }),
+        ...(category !== undefined && { category }),
+        ...(status !== undefined && { status }),
+        ...(alertLevel !== undefined && { alertLevel }),
+        ...(reservationId !== undefined && { reservationId }),
+        ...(orderIndex !== undefined && { orderIndex }),
+      },
     });
     return NextResponse.json(item);
   } catch (error) {

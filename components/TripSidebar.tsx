@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/components/ThemeProvider";
 import { getDaysUntil } from "@/lib/types";
+import TripMembersPanel from "@/components/TripMembersPanel";
 
 type TripStub = { id: string; name: string; coverImage?: string | null };
 
@@ -16,6 +17,8 @@ type Props = {
   coverImage?: string | null;
   userRole: string;
   userName: string;
+  userId: string;
+  tripOwnerId: string | null;
   allTrips: TripStub[];
 };
 
@@ -29,7 +32,7 @@ const icons: Record<string, JSX.Element> = {
   mapa:        <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m0 0l-3 3m3-3l3 3m0-12.75V15m0 0l3 3m-3-3l-3 3M5.25 4.5h13.5a1.5 1.5 0 011.5 1.5v13.5a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V6a1.5 1.5 0 011.5-1.5z" /></svg>,
 };
 
-export default function TripSidebar({ tripId, tripName, startDate, endDate, coverImage, userRole, userName, allTrips }: Props) {
+export default function TripSidebar({ tripId, tripName, startDate, endDate, coverImage, userRole, userName, userId, tripOwnerId, allTrips }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
@@ -193,6 +196,15 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
             );
           })}
         </nav>
+
+        {/* Members panel */}
+        <div className="px-3 pb-2">
+          <TripMembersPanel
+            tripId={tripId}
+            currentUserId={userId}
+            isOwner={tripOwnerId === userId || userRole === "admin"}
+          />
+        </div>
 
         {/* Bottom: user + theme toggle */}
         <div className="p-4 border-t border-white/[0.06] space-y-3">

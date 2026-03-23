@@ -9,10 +9,17 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   try {
-    const trips = await prisma.trip.findMany({
-      where: user.role === "admin" ? {} : { userId: user.id },
-      orderBy: { startDate: "asc" },
-    });
+    let trips;
+    if (user.role === "admin") {
+      trips = await prisma.trip.findMany({ orderBy: { startDate: "asc" } });
+    } else {
+      const [ownedTrips, memberTrips] = await Promise.all([
+        prisma.trip.findMany({ where: { userId: user.id }, orderBy: { startDate: "asc" } }),
+        prisma.trip.findMany({ where: { members: { some: { userId: user.id } } }, orderBy: { startDate: "asc" } }),
+      ]);
+      const seen = new Set<string>();
+      trips = [...ownedTrips, ...memberTrips].filter(t => seen.has(t.id) ? false : seen.add(t.id) && true);
+    }
     return NextResponse.json(trips);
   } catch (error) {
     console.error("Error fetching trips:", error);

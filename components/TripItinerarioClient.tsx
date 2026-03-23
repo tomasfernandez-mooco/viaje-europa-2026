@@ -1,5 +1,20 @@
 "use client";
 import { useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { ItineraryItem, Location, CATEGORIA_LABELS, CATEGORIA_COLORS, ALERT_COLORS, ITINERARY_CATEGORIES, generateDateRange } from "@/lib/types";
 
 type Props = {
@@ -13,12 +28,27 @@ type Props = {
 const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
 const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
-export default function TripItinerarioClient({ tripId, startDate, endDate, items: initialItems, locations }: Props) {
-  const [items, setItems] = useState(initialItems);
-  const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
-  const [creatingForDate, setCreatingForDate] = useState<string | null>(null);
-  const dates = generateDateRange(startDate, endDate);
+function GripIcon() {
+  return (
+    <svg className="w-3 h-3" viewBox="0 0 10 16" fill="currentColor">
+      <circle cx="3" cy="2" r="1.2"/>
+      <circle cx="7" cy="2" r="1.2"/>
+      <circle cx="3" cy="8" r="1.2"/>
+      <circle cx="7" cy="8" r="1.2"/>
+      <circle cx="3" cy="14" r="1.2"/>
+      <circle cx="7" cy="14" r="1.2"/>
+    </svg>
+  );
+}
 
+type ItemRowProps = {
+  item: ItineraryItem;
+  onEdit: (item: ItineraryItem) => void;
+  onDelete: (id: string) => void;
+  isDragOverlay?: boolean;
+};
+
+function ItemRowContent({ item, onEdit, onDelete, isDragOverlay }: ItemRowProps) {
   function getAlertDot(level: string | null | undefined) {
     if (!level) return null;
     const color = ALERT_COLORS[level] ?? ALERT_COLORS.green;
@@ -29,6 +59,80 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
     };
     return <span className={`inline-block w-2.5 h-2.5 rounded-full ${color} ${glowMap[level] ?? ""}`} title={`Riesgo: ${level}`} />;
   }
+
+  return (
+    <>
+      <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+        {getAlertDot(item.alertLevel)}
+        <span className={`text-[11px] px-2 py-0.5 rounded-xl border ${CATEGORIA_COLORS[item.category] ?? "bg-white/40 text-c-muted border-white/20"}`}>
+          {CATEGORIA_LABELS[item.category] ?? item.category}
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          {item.time && <span className="text-xs text-c-muted font-mono">{item.time}</span>}
+          <p className="text-sm font-medium text-c-text">{item.title}</p>
+        </div>
+        {item.description && (
+          <p className="text-xs text-c-muted mt-0.5">{item.description}</p>
+        )}
+      </div>
+      {!isDragOverlay && (
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => onEdit(item)}
+            className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/40 transition-all"
+          >
+            Editar
+          </button>
+          <button
+            onClick={() => onDelete(item.id)}
+            className="text-xs text-c-subtle hover:text-red-500 opacity-0 group-hover:opacity-100 p-1 rounded-xl hover:bg-red-50/40 transition-all"
+            title="Eliminar"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function SortableItem({ item, onEdit, onDelete }: { item: ItineraryItem; onEdit: (item: ItineraryItem) => void; onDelete: (id: string) => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-start gap-3 group py-0.5">
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-1 text-c-subtle opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 shrink-0 touch-none"
+        title="Arrastrar para reordenar"
+      >
+        <GripIcon />
+      </div>
+      <ItemRowContent item={item} onEdit={onEdit} onDelete={onDelete} />
+    </div>
+  );
+}
+
+export default function TripItinerarioClient({ tripId, startDate, endDate, items: initialItems, locations }: Props) {
+  const [items, setItems] = useState(initialItems);
+  const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
+  const [creatingForDate, setCreatingForDate] = useState<string | null>(null);
+  const [activeItem, setActiveItem] = useState<ItineraryItem | null>(null);
+  const dates = generateDateRange(startDate, endDate);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
 
   async function handleSaveEdit(updated: ItineraryItem) {
     try {
@@ -93,7 +197,9 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
       <div className="space-y-3">
         {dates.map((fecha, index) => {
           const d = new Date(fecha + "T12:00:00");
-          const dayItems = items.filter((i) => i.date === fecha);
+          const dayItems = items
+            .filter((i) => i.date === fecha)
+            .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
           const hasAlert = dayItems.some((i) => i.alertLevel === "red" || i.alertLevel === "yellow");
           const loc = locations.find((l) => {
             if (!l.dateRange) return false;
@@ -136,42 +242,61 @@ export default function TripItinerarioClient({ tripId, startDate, endDate, items
 
               {dayItems.length > 0 && (
                 <div className="px-4 py-3 space-y-2.5">
-                  {dayItems.map((item) => (
-                    <div key={item.id} className="flex items-start gap-3 group py-0.5">
-                      <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
-                        {getAlertDot(item.alertLevel)}
-                        <span className={`text-[11px] px-2 py-0.5 rounded-xl border ${CATEGORIA_COLORS[item.category] ?? "bg-white/40 text-c-muted border-white/20"}`}>
-                          {CATEGORIA_LABELS[item.category] ?? item.category}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {item.time && <span className="text-xs text-c-muted font-mono">{item.time}</span>}
-                          <p className="text-sm font-medium text-c-text">{item.title}</p>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={({ active }) => {
+                      setActiveItem(dayItems.find((i) => i.id === active.id) ?? null);
+                    }}
+                    onDragEnd={({ active, over }) => {
+                      setActiveItem(null);
+                      if (!over || active.id === over.id) return;
+                      const oldIndex = dayItems.findIndex((i) => i.id === active.id);
+                      const newIndex = dayItems.findIndex((i) => i.id === over.id);
+                      const reordered = arrayMove(dayItems, oldIndex, newIndex);
+                      setItems((prev) => {
+                        const updated = [...prev];
+                        reordered.forEach((item, idx) => {
+                          const i = updated.findIndex((x) => x.id === item.id);
+                          if (i !== -1) updated[i] = { ...updated[i], orderIndex: idx };
+                        });
+                        return updated;
+                      });
+                      reordered.forEach((item, idx) => {
+                        fetch(`/api/trips/${tripId}/itinerary/${item.id}`, {
+                          method: "PUT",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ ...item, orderIndex: idx }),
+                        });
+                      });
+                    }}
+                  >
+                    <SortableContext items={dayItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                      {dayItems.map((item) => (
+                        <SortableItem
+                          key={item.id}
+                          item={item}
+                          onEdit={setEditingItem}
+                          onDelete={handleDelete}
+                        />
+                      ))}
+                    </SortableContext>
+                    <DragOverlay>
+                      {activeItem ? (
+                        <div className="flex items-start gap-3 py-0.5 glass-card rounded-xl px-3 shadow-glass-lg opacity-95">
+                          <div className="p-1 text-c-subtle mt-0.5 shrink-0">
+                            <GripIcon />
+                          </div>
+                          <ItemRowContent
+                            item={activeItem}
+                            onEdit={() => {}}
+                            onDelete={() => {}}
+                            isDragOverlay
+                          />
                         </div>
-                        {item.description && (
-                          <p className="text-xs text-c-muted mt-0.5">{item.description}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={() => setEditingItem(item)}
-                          className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/40 transition-all"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="text-xs text-c-subtle hover:text-red-500 opacity-0 group-hover:opacity-100 p-1 rounded-xl hover:bg-red-50/40 transition-all"
-                          title="Eliminar"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                      ) : null}
+                    </DragOverlay>
+                  </DndContext>
                 </div>
               )}
 

@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { canAccessTrip } from "@/lib/tripAccess";
 
 export const dynamic = "force-dynamic";
-
-async function canAccessTrip(tripId: string, userId: string, role: string) {
-  if (role === "admin") return true;
-  const trip = await prisma.trip.findUnique({ where: { id: tripId }, select: { userId: true } });
-  return trip?.userId === userId || trip?.userId === null;
-}
 
 export async function GET(
   _request: NextRequest,

@@ -19,6 +19,7 @@ model Trip {
   createdAt  DateTime @default(now())
 
   user           User?           @relation(fields: [userId], references: [id])
+  members        TripMember[]
   reservations   Reservation[]
   itineraryItems ItineraryItem[]
   checklistItems ChecklistItem[]
@@ -39,9 +40,25 @@ model User {
   role      String   @default("traveler")
   createdAt DateTime @default(now())
 
-  trips Trip[]
+  trips          Trip[]
+  tripMemberships TripMember[]
 
   @@map("users")
+}
+
+// ─── TRIP MEMBER ────────────────────────────────────────
+model TripMember {
+  id       String @id @default(uuid())
+  tripId   String
+  userId   String
+  role     String @default("viewer") // "owner" | "editor" | "viewer"
+  joinedAt DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId])
+  @@map("trip_members")
 }
 
 // ─── TRIP CONFIG (key-value per trip) ───────────────────
@@ -104,6 +121,7 @@ model ItineraryItem {
   status        String   @default("planned")
   alertLevel    String?
   reservationId String?
+  orderIndex    Int      @default(0)
   createdAt     DateTime @default(now())
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)

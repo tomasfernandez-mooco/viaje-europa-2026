@@ -61,6 +61,7 @@ export type ItineraryItem = {
   status: string;
   alertLevel?: string | null;
   reservationId?: string | null;
+  orderIndex?: number;
   createdAt: string;
 };
 

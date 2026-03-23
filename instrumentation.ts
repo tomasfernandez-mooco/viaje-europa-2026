@@ -21,6 +21,11 @@ export async function register() {
         sql: 'ALTER TABLE reservations ADD COLUMN "travelers" INTEGER NOT NULL DEFAULT 2',
         label: "reservations.travelers",
       },
+      {
+        sql: `CREATE TABLE IF NOT EXISTS "trip_members" ("id" TEXT NOT NULL PRIMARY KEY, "tripId" TEXT NOT NULL, "userId" TEXT NOT NULL, "role" TEXT NOT NULL DEFAULT 'viewer', "joinedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY ("tripId") REFERENCES "trips"("id") ON DELETE CASCADE, FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE, UNIQUE("tripId", "userId"))`,
+        label: "trip_members table",
+      },
+      { sql: 'ALTER TABLE itinerary_items ADD COLUMN "orderIndex" INTEGER NOT NULL DEFAULT 0', label: "itinerary_items.orderIndex" },
     ];
 
     for (const { sql, label } of migrations) {
