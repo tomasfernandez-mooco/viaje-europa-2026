@@ -99,16 +99,20 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
             style={{ width: `${items.length > 0 ? (completed.length / items.length) * 100 : 0}%` }} />
         </div>
         {allCategories.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
+          <div className="grid grid-cols-2 gap-2 mt-3">
             {allCategories.map((cat) => {
               const catTotal = items.filter((i) => (i.category ?? "general") === cat).length;
               const catDone = items.filter((i) => (i.category ?? "general") === cat && i.completed).length;
+              const pct = catTotal > 0 ? Math.round((catDone / catTotal) * 100) : 0;
               return (
-                <div key={cat} className="flex items-center gap-1.5 text-xs text-c-muted">
-                  <div className="w-16 h-1 bg-white/40 rounded-full overflow-hidden">
-                    <div className="bg-accent h-full rounded-full" style={{ width: `${catTotal > 0 ? (catDone / catTotal) * 100 : 0}%` }} />
+                <div key={cat} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-c-muted capitalize font-medium">{cat}</span>
+                    <span className="text-[11px] text-c-subtle">{catDone}/{catTotal}</span>
                   </div>
-                  <span className="capitalize">{cat} ({catDone}/{catTotal})</span>
+                  <div className="w-full h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+                    <div className="bg-accent h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                  </div>
                 </div>
               );
             })}

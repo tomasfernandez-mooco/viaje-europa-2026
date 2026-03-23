@@ -39,8 +39,7 @@ export async function PUT(
       return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
     }
     const body = await request.json();
-    // Prevent changing userId
-    delete body.userId;
+    if (user.role !== "admin") delete body.userId; // only admin can change owner
     const trip = await prisma.trip.update({ where: { id: tripId }, data: body });
     return NextResponse.json(trip);
   } catch (error) {

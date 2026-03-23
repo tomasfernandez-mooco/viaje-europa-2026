@@ -14,6 +14,8 @@ type Location = {
   orderIndex: number;
 };
 
+type Member = { id: string; name: string; email: string; avatar?: string | null; role: string; joinedAt: string | null };
+
 type Props = {
   tripId: string;
   tripName: string;
@@ -21,17 +23,26 @@ type Props = {
   endDate: string;
   coverImage?: string | null;
   isOwner: boolean;
+  currentUserId: string;
 };
 
-export default function TripSettingsPanel({ tripId, tripName, startDate, endDate, coverImage, isOwner }: Props) {
+export default function TripSettingsPanel({ tripId, tripName, startDate, endDate, coverImage, isOwner, currentUserId }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<"viaje" | "destinos">("viaje");
+  const [tab, setTab] = useState<"viaje" | "destinos" | "viajeros">("viaje");
 
   // Trip form
   const [tripForm, setTripForm] = useState({ name: tripName, startDate, endDate, coverImage: coverImage ?? "" });
   const [savingTrip, setSavingTrip] = useState(false);
   const [tripSaved, setTripSaved] = useState(false);
+
+  // Members
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(true);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("editor");
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState("");
 
   // Locations
   const [locations, setLocations] = useState<Location[]>([]);
@@ -47,6 +58,15 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
       fetch(`/api/trips/${tripId}/locations`)
         .then(r => r.json())
         .then(data => { setLocations(Array.isArray(data) ? data.sort((a: Location, b: Location) => a.orderIndex - b.orderIndex) : []); setLoadingLocs(false); });
+    }
+  }, [open, tab, tripId]);
+
+  useEffect(() => {
+    if (open && tab === "viajeros") {
+      setLoadingMembers(true);
+      fetch(`/api/trips/${tripId}/members`)
+        .then(r => r.json())
+        .then(data => { setMembers(Array.isArray(data) ? data : []); setLoadingMembers(false); });
     }
   }, [open, tab, tripId]);
 
@@ -136,6 +156,27 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
     setLocations(prev => prev.filter(l => l.id !== id));
   }
 
+  async function handleInvite(e: React.FormEvent) {
+    e.preventDefault();
+    setInviting(true); setInviteError("");
+    const res = await fetch(`/api/trips/${tripId}/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setInviteError(data.error ?? "Error al invitar"); }
+    else { setMembers(prev => [...prev.filter(m => m.id !== data.id), data]); setInviteEmail(""); }
+    setInviting(false);
+  }
+
+  async function handleRemoveMember(userId: string) {
+    await fetch(`/api/trips/${tripId}/members/${userId}`, { method: "DELETE" });
+    setMembers(prev => prev.filter(m => m.id !== userId));
+  }
+
+  const roleLabel: Record<string, string> = { owner: "Dueño", editor: "Editor", viewer: "Lector" };
+
   const inputClass = "w-full glass-input !py-2 !px-3 text-sm";
 
   return (
@@ -150,7 +191,7 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
           <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
-        Configurar viaje
+        Configuración
       </button>
 
       {open && (
@@ -168,10 +209,10 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
 
             {/* Tabs */}
             <div className="flex gap-1 px-6 pt-3 shrink-0">
-              {(["viaje", "destinos"] as const).map(t => (
+              {(["viaje", "destinos", "viajeros"] as const).map(t => (
                 <button key={t} onClick={() => setTab(t)}
                   className={`px-4 py-1.5 text-sm font-medium rounded-xl capitalize transition-all ${tab === t ? "bg-accent text-white shadow-sm" : "text-c-muted hover:text-c-text"}`}>
-                  {t === "viaje" ? "Viaje" : "Destinos"}
+                  {t === "viaje" ? "Viaje" : t === "destinos" ? "Destinos" : "Viajeros"}
                 </button>
               ))}
             </div>
@@ -348,6 +389,72 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
                           className="w-full py-3 text-sm text-c-muted border border-dashed border-c-border rounded-2xl hover:border-accent hover:text-accent transition-all">
                           + Agregar destino
                         </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* ── Tab: Viajeros ── */}
+              {tab === "viajeros" && (
+                <div className="space-y-3">
+                  {loadingMembers ? (
+                    <p className="text-sm text-c-muted text-center py-6">Cargando...</p>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        {members.map(m => (
+                          <div key={m.id} className="flex items-center gap-3 p-3 rounded-2xl bg-white/30 dark:bg-white/5 border border-c-border">
+                            <div className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center shrink-0 text-sm font-semibold text-accent">
+                              {m.name?.[0]?.toUpperCase() ?? "?"}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-c-heading truncate">{m.name}</p>
+                              <p className="text-xs text-c-muted truncate">{m.email}</p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                m.role === "owner" ? "bg-accent/15 text-accent" :
+                                m.role === "editor" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400" :
+                                "bg-c-surface-alt text-c-muted"
+                              }`}>{roleLabel[m.role] ?? m.role}</span>
+                              {(isOwner || m.id === currentUserId) && m.role !== "owner" && (
+                                <button onClick={() => handleRemoveMember(m.id)} className="text-c-subtle hover:text-red-500 transition-colors p-1">
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        {members.length === 0 && (
+                          <p className="text-sm text-c-muted text-center py-4">No hay viajeros</p>
+                        )}
+                      </div>
+
+                      {isOwner && (
+                        <form onSubmit={handleInvite} className="border-t border-c-border pt-4 space-y-3">
+                          <p className="text-xs font-semibold text-c-muted uppercase tracking-wider">Invitar viajero</p>
+                          <input
+                            type="email"
+                            value={inviteEmail}
+                            onChange={e => setInviteEmail(e.target.value)}
+                            placeholder="email@ejemplo.com"
+                            required
+                            className="glass-input w-full !py-2 !px-3 text-sm"
+                          />
+                          <div className="flex gap-2">
+                            <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} className="glass-input !py-2 !px-3 text-sm !w-auto">
+                              <option value="editor">Editor</option>
+                              <option value="viewer">Lector</option>
+                            </select>
+                            <button type="submit" disabled={inviting} className="flex-1 px-4 py-2 text-sm bg-accent text-white rounded-2xl hover:bg-terra-500 font-medium transition-colors disabled:opacity-50">
+                              {inviting ? "Invitando..." : "Invitar"}
+                            </button>
+                          </div>
+                          {inviteError && <p className="text-xs text-red-500">{inviteError}</p>}
+                        </form>
                       )}
                     </>
                   )}

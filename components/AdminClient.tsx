@@ -13,7 +13,7 @@ type TripRow = {
 
 export default function AdminClient({
   users: initial,
-  trips,
+  trips: initialTrips,
   currentUserId,
 }: {
   users: UserRow[];
@@ -21,11 +21,26 @@ export default function AdminClient({
   currentUserId: string;
 }) {
   const [users, setUsers] = useState(initial);
+  const [trips, setTrips] = useState(initialTrips);
+  const [assigningTripId, setAssigningTripId] = useState<string | null>(null);
+  const [assignUserId, setAssignUserId] = useState("");
 
   async function deleteUser(userId: string) {
     if (!confirm("Eliminar este usuario? Sus viajes sin reasignar quedarán huérfanos.")) return;
     await fetch(`/api/admin?userId=${userId}`, { method: "DELETE" });
     setUsers((prev) => prev.filter((u) => u.id !== userId));
+  }
+
+  async function handleAssignOwner(tripId: string) {
+    if (!assignUserId) return;
+    await fetch(`/api/trips/${tripId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: assignUserId }),
+    });
+    setTrips((prev) => prev.map((t) => t.id === tripId ? { ...t, userId: assignUserId } : t));
+    setAssigningTripId(null);
+    setAssignUserId("");
   }
 
   function tripsForUser(userId: string) {
@@ -148,7 +163,7 @@ export default function AdminClient({
           </h2>
           <div className="glass-card rounded-2xl overflow-hidden border border-amber-200/30">
             {orphanTrips.map((t) => (
-              <div key={t.id} className="flex items-center justify-between px-4 py-3 border-b border-white/10 last:border-0">
+              <div key={t.id} className="flex items-center justify-between px-4 py-3 border-b border-white/10 last:border-0 flex-wrap gap-2">
                 <div className="flex items-center gap-3">
                   {t.coverImage && (
                     <img src={t.coverImage} alt={t.name} className="w-8 h-8 rounded-lg object-cover" />
@@ -158,7 +173,45 @@ export default function AdminClient({
                     <p className="text-xs text-c-muted">{t.startDate} → {t.endDate}</p>
                   </div>
                 </div>
-                <Link href={`/trips/${t.id}`} className="text-xs text-accent hover:underline">Ver viaje</Link>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {assigningTripId === t.id ? (
+                    <>
+                      <select
+                        value={assignUserId}
+                        onChange={(e) => setAssignUserId(e.target.value)}
+                        className="text-xs border border-c-border rounded-xl px-2 py-1 bg-white/80 dark:bg-white/10 text-c-text"
+                      >
+                        <option value="">Seleccionar usuario...</option>
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => handleAssignOwner(t.id)}
+                        disabled={!assignUserId}
+                        className="text-xs bg-accent text-white px-3 py-1 rounded-xl hover:bg-terra-500 transition-colors disabled:opacity-50"
+                      >
+                        Confirmar
+                      </button>
+                      <button
+                        onClick={() => { setAssigningTripId(null); setAssignUserId(""); }}
+                        className="text-xs text-c-muted hover:text-c-text px-2 py-1 rounded-xl transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setAssigningTripId(t.id)}
+                        className="text-xs text-amber-600 hover:text-amber-700 px-2 py-1 rounded-xl hover:bg-amber-50/50 transition-colors"
+                      >
+                        Asignar
+                      </button>
+                      <Link href={`/trips/${t.id}`} className="text-xs text-accent hover:underline">Ver viaje</Link>
+                    </>
+                  )}
+                </div>
               </div>
             ))}
           </div>

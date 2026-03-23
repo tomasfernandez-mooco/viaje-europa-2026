@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { Reservation, CATEGORIA_LABELS } from "@/lib/types";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const COLORS = ["#8B6F4E", "#C5A882", "#6F5A3E", "#E0CEBC", "#A0845C", "#D4BC9A", "#5A4830", "#B89B6E", "#F0E8DD"];
 
@@ -178,17 +178,28 @@ export default function TripPresupuestoClient({ reservations, config }: Props) {
 
         <div className="glass-card rounded-2xl p-5">
           {chartToggle === "categoria" ? (
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={300}>
               <PieChart>
-                <Pie data={porCategoria} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90}
-                  label={(props: { name?: string; percent?: number }) =>
-                    `${CATEGORIA_LABELS[(props.name ?? "")] ?? props.name ?? ""} ${((props.percent ?? 0) * 100).toFixed(0)}%`
-                  }>
+                <Pie
+                  data={porCategoria}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={85}
+                  labelLine={false}
+                >
                   {porCategoria.map((_, index) => (
                     <Cell key={index} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, "USD"]} contentStyle={{ borderRadius: "1rem", border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.85)", backdropFilter: "blur(12px)", boxShadow: "0 4px 24px -2px rgba(0,0,0,0.06)" }} />
+                <Legend
+                  formatter={(value) => CATEGORIA_LABELS[value] ?? value}
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
+                />
               </PieChart>
             </ResponsiveContainer>
           ) : (
