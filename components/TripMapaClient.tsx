@@ -103,11 +103,11 @@ export default function TripMapaClient({ tripId, locations, reservations }: Prop
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                       selected === loc.id
                         ? "bg-accent text-white shadow-glass-sm"
-                        : "bg-white/50 text-c-muted border border-white/30 hover:bg-white/70"
+                        : "bg-white/40 dark:bg-white/[0.07] text-c-text border border-white/30 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/[0.12]"
                     }`}
                   >
                     <span className={`w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-bold ${
-                      selected === loc.id ? "bg-white/20 text-white" : "bg-stone-200/60 text-c-muted"
+                      selected === loc.id ? "bg-white/20 text-white" : "bg-stone-200/60 dark:bg-white/10 text-c-muted"
                     }`}>
                       {i + 1}
                     </span>
@@ -234,21 +234,21 @@ export default function TripMapaClient({ tripId, locations, reservations }: Prop
           <div className="glass-card rounded-2xl p-4">
             <h2 className="text-[11px] font-semibold text-c-muted uppercase tracking-widest mb-3">Resumen</h2>
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-white/40 rounded-xl p-3 text-center border border-white/20">
+              <div className="bg-white/30 dark:bg-white/[0.05] rounded-xl p-3 text-center border border-white/20 dark:border-white/[0.08]">
                 <p className="text-xl font-bold text-accent">{locations.length}</p>
                 <p className="text-[10px] text-c-muted uppercase tracking-wide">destinos</p>
               </div>
-              <div className="bg-white/40 rounded-xl p-3 text-center border border-white/20">
+              <div className="bg-white/30 dark:bg-white/[0.05] rounded-xl p-3 text-center border border-white/20 dark:border-white/[0.08]">
                 <p className="text-xl font-bold text-accent">{reservations.length}</p>
                 <p className="text-[10px] text-c-muted uppercase tracking-wide">reservas</p>
               </div>
-              <div className="bg-white/40 rounded-xl p-3 text-center border border-white/20">
+              <div className="bg-white/30 dark:bg-white/[0.05] rounded-xl p-3 text-center border border-white/20 dark:border-white/[0.08]">
                 <p className="text-xl font-bold text-accent">
                   {reservations.filter((r) => r.type === "vuelo").length}
                 </p>
                 <p className="text-[10px] text-c-muted uppercase tracking-wide">vuelos</p>
               </div>
-              <div className="bg-white/40 rounded-xl p-3 text-center border border-white/20">
+              <div className="bg-white/30 dark:bg-white/[0.05] rounded-xl p-3 text-center border border-white/20 dark:border-white/[0.08]">
                 <p className="text-xl font-bold text-accent">
                   ${reservations.reduce((s, r) => s + r.priceUSD, 0).toLocaleString()}
                 </p>

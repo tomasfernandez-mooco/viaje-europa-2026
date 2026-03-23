@@ -162,7 +162,7 @@ export default function TripCalendarioClient({ tripId, tripName, startDate, endD
                               isSelected
                                 ? "bg-accent/90 text-white ring-2 ring-accent/40 shadow-glass-sm"
                                 : isTrip
-                                  ? "bg-white/40 hover:bg-white/60 text-c-text cursor-pointer"
+                                  ? "bg-white/30 dark:bg-white/[0.06] hover:bg-white/50 dark:hover:bg-white/[0.1] border border-white/20 dark:border-white/[0.08] text-c-text cursor-pointer"
                                   : "text-c-subtle cursor-default"
                             }`}
                           >
@@ -199,7 +199,7 @@ export default function TripCalendarioClient({ tripId, tripName, startDate, endD
                             isSelected
                               ? "bg-accent text-white ring-2 ring-accent/40 shadow-glass-sm"
                               : isTrip
-                                ? "bg-white/40 hover:bg-white/60 text-c-text cursor-pointer"
+                                ? "bg-white/30 dark:bg-white/[0.06] hover:bg-white/50 dark:hover:bg-white/[0.1] border border-white/20 dark:border-white/[0.08] text-c-text cursor-pointer"
                                 : "text-c-subtle cursor-default"
                           }`}
                         >
@@ -328,12 +328,15 @@ function getCategoryDotColor(cat: string): string {
 
 function getCategoryBlockColor(cat: string): string {
   const map: Record<string, string> = {
-    vuelo: "bg-blue-100/80 text-blue-700", alojamiento: "bg-purple-100/80 text-purple-700",
-    transporte: "bg-slate-100/80 text-slate-600", crucero: "bg-cyan-100/80 text-cyan-700",
-    actividad: "bg-green-100/80 text-green-700", comida: "bg-amber-100/80 text-amber-700",
-    shopping: "bg-pink-100/80 text-pink-700",
+    vuelo:       "bg-blue-500/15   text-blue-600   dark:text-blue-300",
+    alojamiento: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
+    transporte:  "bg-slate-400/15  text-slate-600  dark:text-slate-300",
+    crucero:     "bg-cyan-500/15   text-cyan-600   dark:text-cyan-300",
+    actividad:   "bg-green-500/15  text-green-600  dark:text-green-300",
+    comida:      "bg-amber-500/15  text-amber-600  dark:text-amber-300",
+    shopping:    "bg-pink-500/15   text-pink-600   dark:text-pink-300",
   };
-  return map[cat] ?? "bg-zinc-100/80 text-zinc-600";
+  return map[cat] ?? "bg-zinc-400/15 text-zinc-600 dark:text-zinc-300";
 }
 
 function getCategoryBarColor(cat: string): string {

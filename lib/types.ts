@@ -143,16 +143,16 @@ export const CATEGORIA_LABELS: Record<string, string> = {
 };
 
 export const CATEGORIA_COLORS: Record<string, string> = {
-  vuelo: "bg-blue-100 text-blue-700 border-blue-200",
-  alojamiento: "bg-purple-100 text-purple-700 border-purple-200",
-  transporte: "bg-slate-100 text-slate-700 border-slate-200",
-  crucero: "bg-cyan-100 text-cyan-700 border-cyan-200",
-  actividad: "bg-green-100 text-green-700 border-green-200",
-  comida: "bg-amber-100 text-amber-700 border-amber-200",
-  seguro: "bg-teal-100 text-teal-700 border-teal-200",
-  shopping: "bg-pink-100 text-pink-700 border-pink-200",
-  logistica: "bg-gray-100 text-gray-600 border-gray-200",
-  otro: "bg-zinc-100 text-zinc-600 border-zinc-200",
+  vuelo:       "bg-blue-100   text-blue-700   border-blue-200   dark:bg-blue-500/15   dark:text-blue-300   dark:border-blue-500/20",
+  alojamiento: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/20",
+  transporte:  "bg-slate-100  text-slate-600  border-slate-200  dark:bg-slate-400/15  dark:text-slate-300  dark:border-slate-400/20",
+  crucero:     "bg-cyan-100   text-cyan-700   border-cyan-200   dark:bg-cyan-500/15   dark:text-cyan-300   dark:border-cyan-500/20",
+  actividad:   "bg-green-100  text-green-700  border-green-200  dark:bg-green-500/15  dark:text-green-300  dark:border-green-500/20",
+  comida:      "bg-amber-100  text-amber-700  border-amber-200  dark:bg-amber-500/15  dark:text-amber-300  dark:border-amber-500/20",
+  seguro:      "bg-teal-100   text-teal-700   border-teal-200   dark:bg-teal-500/15   dark:text-teal-300   dark:border-teal-500/20",
+  shopping:    "bg-pink-100   text-pink-700   border-pink-200   dark:bg-pink-500/15   dark:text-pink-300   dark:border-pink-500/20",
+  logistica:   "bg-gray-100   text-gray-600   border-gray-200   dark:bg-gray-400/15   dark:text-gray-300   dark:border-gray-400/20",
+  otro:        "bg-zinc-100   text-zinc-600   border-zinc-200   dark:bg-zinc-400/15   dark:text-zinc-300   dark:border-zinc-400/20",
 };
 
 export const ESTADO_COLORS: Record<string, string> = {

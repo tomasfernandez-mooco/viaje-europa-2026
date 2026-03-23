@@ -214,7 +214,7 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)}>
           <div className="w-full max-w-lg max-h-[90vh] flex flex-col glass-card-solid rounded-3xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-c-border shrink-0">
