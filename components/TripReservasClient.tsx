@@ -154,7 +154,7 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
           </thead>
           <tbody className="divide-y divide-white/10">
             {filtered.map((r) => (
-              <tr key={r.id} className="hover:bg-white/30 transition-colors">
+              <tr key={r.id} className="hover:bg-white/[0.04] dark:hover:bg-white/[0.06] transition-colors">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2.5">
                     {r.attachmentUrl && /\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(r.attachmentUrl) && (
@@ -186,12 +186,12 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
                   <div className="flex items-center justify-end gap-1">
                     {r.reservationUrl && (
                       <a href={r.reservationUrl} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/40 transition-colors">
+                        className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/[0.06] transition-colors">
                         Reservar
                       </a>
                     )}
                     <button onClick={() => { setEditing(r); setModalOpen(true); }}
-                      className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/40 transition-colors">
+                      className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/[0.06] transition-colors">
                       Editar
                     </button>
                     <button onClick={() => handleDelete(r.id)}
@@ -290,7 +290,7 @@ function ReservationModal({
       <div className="glass-card-solid rounded-2xl shadow-glass-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="px-6 py-4 border-b border-white/15 flex justify-between items-center">
           <h2 className="text-lg font-display font-semibold text-c-heading">{reservation ? "Editar reserva" : "Nueva reserva"}</h2>
-          <button onClick={onClose} className="text-c-muted hover:text-c-muted w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/40 transition-colors">&times;</button>
+          <button onClick={onClose} className="text-c-muted hover:text-c-muted w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/[0.06] transition-colors">&times;</button>
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="p-6 space-y-4">
@@ -359,8 +359,12 @@ function ReservationModal({
                 onChange={(e) => update("price", parseFloat(e.target.value) || 0)} className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Equivalente USD</label>
-              <input type="number" value={form.priceUSD ?? 0} readOnly className={`${inputClass} !bg-white/30 text-c-muted`} />
+              <label className={labelClass}>Equivalente USD (calculado)</label>
+              <div className="glass-input !py-2 flex items-center gap-2 !bg-accent/8 border-accent/20">
+                <span className="text-xs text-c-muted">$</span>
+                <span className="text-sm font-semibold text-accent">{(form.priceUSD ?? 0).toLocaleString()}</span>
+                <span className="text-xs text-c-muted ml-auto">USD</span>
+              </div>
             </div>
           </div>
 
@@ -431,7 +435,7 @@ function ReservationModal({
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2.5 text-sm text-c-muted hover:text-c-text rounded-2xl hover:bg-white/40 transition-colors">Cancelar</button>
+            <button type="button" onClick={onClose} className="px-4 py-2.5 text-sm text-c-muted hover:text-c-text rounded-2xl hover:bg-white/[0.06] transition-colors">Cancelar</button>
             <button type="submit" className="px-6 py-2.5 text-sm bg-accent text-white rounded-2xl hover:bg-terra-500 font-medium shadow-glass-sm hover:shadow-glass transition-all">
               {reservation ? "Guardar" : "Agregar"}
             </button>

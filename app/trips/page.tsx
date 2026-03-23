@@ -14,11 +14,6 @@ export default async function TripsPage() {
     orderBy: { startDate: "asc" },
   });
 
-  // If only one trip, redirect directly to its dashboard
-  if (trips.length === 1) {
-    redirect(`/trips/${trips[0].id}`);
-  }
-
   return (
     <TripsListClient
       trips={trips as any}

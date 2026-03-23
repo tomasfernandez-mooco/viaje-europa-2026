@@ -3,7 +3,20 @@ import { useState, useMemo } from "react";
 import { Reservation, CATEGORIA_LABELS } from "@/lib/types";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-const COLORS = ["#8B6F4E", "#C5A882", "#6F5A3E", "#E0CEBC", "#A0845C", "#D4BC9A", "#5A4830", "#B89B6E", "#F0E8DD"];
+const COLORS = ["#6366f1","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#f97316","#ec4899","#84cc16","#14b8a6"];
+
+const RADIAN = Math.PI / 180;
+function renderCustomizedLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) {
+  if (percent < 0.04) return null;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+}
 
 type Props = {
   reservations: Reservation[];
@@ -188,6 +201,7 @@ export default function TripPresupuestoClient({ reservations, config }: Props) {
                   cy="50%"
                   outerRadius={85}
                   labelLine={false}
+                  label={renderCustomizedLabel}
                 >
                   {porCategoria.map((_, index) => (
                     <Cell key={index} fill={COLORS[index % COLORS.length]} />
@@ -208,7 +222,7 @@ export default function TripPresupuestoClient({ reservations, config }: Props) {
                 <XAxis type="number" tick={{ fontSize: 11, fill: "#a8a29e" }} tickFormatter={(v) => `$${(v/1000).toFixed(1)}k`} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="ciudad" tick={{ fontSize: 11, fill: "#78716c" }} width={90} axisLine={false} tickLine={false} />
                 <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, "USD"]} contentStyle={{ borderRadius: "1rem", border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.85)", backdropFilter: "blur(12px)", boxShadow: "0 4px 24px -2px rgba(0,0,0,0.06)" }} />
-                <Bar dataKey="usd" fill="#8B6F4E" radius={[0, 8, 8, 0]} />
+                <Bar dataKey="usd" fill="#6366f1" radius={[0, 8, 8, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}

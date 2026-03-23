@@ -106,16 +106,6 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
             </svg>
           </button>
 
-          {/* New trip button — always visible */}
-          <Link
-            href="/trips"
-            className="shrink-0 p-1.5 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-colors mt-1"
-            title="Nuevo viaje"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-          </Link>
           </div>
 
           {/* Trip switcher dropdown */}
@@ -199,8 +189,11 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
           })}
         </nav>
 
-        {/* Settings panel */}
-        <div className="px-3 pb-2">
+        {/* Bottom config section */}
+        <div className="border-t border-white/[0.06] pt-3 pb-4 px-3 space-y-1">
+          <p className="text-[9px] font-semibold text-slate-700 uppercase tracking-widest px-2 pb-1">Configuración</p>
+
+          {/* Trip settings */}
           <TripSettingsPanel
             tripId={tripId}
             tripName={tripName}
@@ -210,43 +203,37 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
             isOwner={tripOwnerId === userId || userRole === "admin"}
             currentUserId={userId}
           />
-        </div>
 
-        {/* Bottom: user + theme toggle */}
-        <div className="p-4 border-t border-white/[0.06] space-y-3">
           {/* Theme toggle */}
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-slate-600 uppercase tracking-wider font-medium">Tema</span>
-            <button
-              onClick={toggle}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-all text-slate-400 hover:text-slate-200"
-              title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-            >
-              {theme === "dark" ? (
-                <>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
-                  </svg>
-                  <span className="text-[11px] font-medium">Claro</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-                  </svg>
-                  <span className="text-[11px] font-medium">Oscuro</span>
-                </>
-              )}
-            </button>
-          </div>
+          <button
+            onClick={toggle}
+            className="w-full flex items-center gap-2.5 px-2 py-2 rounded-xl text-slate-500 hover:text-slate-300 hover:bg-white/[0.04] transition-all text-xs"
+            title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+          >
+            {theme === "dark" ? (
+              <>
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+                </svg>
+                <span>Modo claro</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                </svg>
+                <span>Modo oscuro</span>
+              </>
+            )}
+          </button>
 
           {/* Admin link */}
           {userRole === "admin" && (
             <Link
               href="/admin"
-              className="flex items-center gap-1.5 text-[11px] text-slate-600 hover:text-slate-400 transition-colors"
+              className="flex items-center gap-2.5 px-2 py-2 rounded-xl text-slate-500 hover:text-slate-300 hover:bg-white/[0.04] transition-all text-xs"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -255,24 +242,16 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
           )}
 
           {/* User */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between px-2 py-2">
             <button
               onClick={() => setProfileOpen(true)}
-              className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition-opacity"
+              className="min-w-0 hover:opacity-80 transition-opacity text-left"
               title="Editar perfil"
             >
-              <div className="w-7 h-7 bg-accent rounded-full flex items-center justify-center text-white text-xs font-semibold ring-2 ring-accent/20 ring-offset-1 ring-offset-slate-950 shrink-0 overflow-hidden">
-                {profileForm.avatar
-                  ? <img src={profileForm.avatar} alt={userName} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                  : userName.charAt(0).toUpperCase()
-                }
-              </div>
-              <div className="text-left min-w-0">
-                <p className="text-xs font-medium text-slate-300 leading-tight truncate">{userName}</p>
-                <p className="text-[10px] text-slate-600 capitalize">{userRole}</p>
-              </div>
+              <p className="text-xs font-medium text-slate-300 leading-tight truncate">{userName}</p>
+              <p className="text-[10px] text-slate-600 capitalize">{userRole}</p>
             </button>
-            <button onClick={logout} className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors shrink-0">
+            <button onClick={logout} className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors shrink-0 ml-2">
               Salir
             </button>
           </div>
