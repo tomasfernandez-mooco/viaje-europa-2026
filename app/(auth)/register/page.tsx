@@ -42,7 +42,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
     if (form.password !== form.confirm) { setError("Las contraseñas no coinciden"); return; }
-    if (form.password.length < 6) { setError("La contraseña debe tener al menos 6 caracteres"); return; }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {

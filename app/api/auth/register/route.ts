@@ -11,10 +11,7 @@ export async function POST(req: NextRequest) {
     if (!name || !email || !password) {
       return NextResponse.json({ error: "Nombre, email y contraseña requeridos" }, { status: 400 });
     }
-    if (password.length < 6) {
-      return NextResponse.json({ error: "La contraseña debe tener al menos 6 caracteres" }, { status: 400 });
-    }
-    const existing = await prisma.user.findUnique({ where: { email } });
+const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return NextResponse.json({ error: "Ya existe una cuenta con ese email" }, { status: 409 });
     }
