@@ -41,7 +41,9 @@ export async function PUT(
       where: { id, tripId },
       data: {
         ...rest,
-        ...(travelerIds !== undefined && { travelerIds: JSON.stringify(travelerIds) }),
+        ...(travelerIds !== undefined && {
+          travelerIds: Array.isArray(travelerIds) ? JSON.stringify(travelerIds) : travelerIds,
+        }),
       },
     });
     return NextResponse.json(reservation);

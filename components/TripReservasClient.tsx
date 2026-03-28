@@ -108,9 +108,9 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
     try { return JSON.parse(r.travelerIds ?? "[]"); } catch { return []; }
   }
 
-  function costPerTraveler(r: Reservation): number {
+  function costPerTraveler(r: Reservation, totalMembers?: number): number {
     const ids = parseTravelerIds(r);
-    const count = ids.length || r.travelers || 1;
+    const count = ids.length || totalMembers || r.travelers || 1;
     return r.priceUSD / count;
   }
 
@@ -324,7 +324,7 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
               const ids = parseTravelerIds(r);
               return ids.length === 0 || ids.includes(member.userId);
             });
-            const total = myReservations.reduce((s, r) => s + costPerTraveler(r), 0);
+            const total = myReservations.reduce((s, r) => s + costPerTraveler(r, members.length), 0);
             return (
               <div key={member.userId} className="glass-card rounded-2xl overflow-hidden">
                 <div className="px-5 py-4 flex items-center justify-between border-b border-white/10">
@@ -357,7 +357,7 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
                         <span className="text-c-subtle text-xs shrink-0">{r.city}</span>
                       </div>
                       <div className="text-right ml-4 shrink-0">
-                        <p className="font-medium text-c-heading">${Math.round(costPerTraveler(r)).toLocaleString()}</p>
+                        <p className="font-medium text-c-heading">${Math.round(costPerTraveler(r, members.length)).toLocaleString()}</p>
                         {parseTravelerIds(r).length > 1 && (
                           <p className="text-[10px] text-c-muted">${r.priceUSD.toLocaleString()} ÷ {parseTravelerIds(r).length}</p>
                         )}
