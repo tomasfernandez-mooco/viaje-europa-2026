@@ -329,7 +329,7 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[52px] px-3 py-2 rounded-xl text-[11px] font-medium transition-all duration-200 ${
+                    className={`relative flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[52px] px-3 py-2 rounded-xl text-[11px] font-medium transition-all duration-200 ${
                       active ? "text-accent" : "text-slate-500"
                     }`}
                   >
@@ -347,7 +347,7 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
               {/* "Más" button */}
               <button
                 onClick={() => setMoreOpen((o) => !o)}
-                className={`flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[52px] px-3 py-2 rounded-xl text-[11px] font-medium transition-all duration-200 ${
+                className={`relative flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[52px] px-3 py-2 rounded-xl text-[11px] font-medium transition-all duration-200 ${
                   anySecondaryActive || moreOpen ? "text-accent" : "text-slate-500"
                 }`}
               >
