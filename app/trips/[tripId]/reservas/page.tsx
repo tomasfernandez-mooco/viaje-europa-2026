@@ -1,13 +1,17 @@
 import prisma from "@/lib/db";
-import { Reservation } from "@/lib/types";
+import { Reservation, TripMember } from "@/lib/types";
 import TripReservasClient from "@/components/TripReservasClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReservasPage({ params }: { params: { tripId: string } }) {
-  const [reservations, configRows] = await Promise.all([
+  const [reservations, configRows, members] = await Promise.all([
     prisma.reservation.findMany({ where: { tripId: params.tripId }, orderBy: { startDate: "asc" } }),
     prisma.tripConfig.findMany({ where: { tripId: params.tripId } }),
+    prisma.tripMember.findMany({
+      where: { tripId: params.tripId },
+      include: { user: { select: { id: true, name: true } } },
+    }),
   ]);
 
   const config: Record<string, string> = {};
@@ -18,6 +22,7 @@ export default async function ReservasPage({ params }: { params: { tripId: strin
       tripId={params.tripId}
       reservations={reservations as unknown as Reservation[]}
       config={config}
+      members={members as unknown as TripMember[]}
     />
   );
 }
