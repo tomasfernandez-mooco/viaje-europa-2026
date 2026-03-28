@@ -175,6 +175,16 @@ export default function TripChecklistClient({ tripId, items: initial }: Props) {
         </div>
       )}
 
+      {items.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <svg className="w-12 h-12 text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-c-muted text-sm font-medium">No hay ítems en el checklist todavía</p>
+          <p className="text-c-subtle text-xs mt-1">Agregá tareas para preparar el viaje</p>
+        </div>
+      )}
+
       {/* Items grouped by category — pending + completed together */}
       {visibleCategories.map((category) => {
         const { pending: catPending, completed: catCompleted } = grouped[category];
