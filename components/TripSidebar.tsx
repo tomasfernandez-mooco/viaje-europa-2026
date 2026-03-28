@@ -44,6 +44,7 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: userName, avatar: "" });
   const [profileSaving, setProfileSaving] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const base = `/trips/${tripId}`;
   const isJunior = tripMemberRole === "junior";
@@ -277,7 +278,7 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
                 });
                 setProfileSaving(false);
                 setProfileOpen(false);
-                window.location.reload();
+                router.refresh();
               }}
               className="p-5 space-y-4"
             >
@@ -308,36 +309,111 @@ export default function TripSidebar({ tripId, tripName, startDate, endDate, cove
       )}
 
 
-      {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl border-t border-white/[0.06] z-50 flex justify-around px-2 py-2 safe-area-pb">
-        {navItems.map((item) => {
-          const active = pathname === item.href || (item.href !== base && pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`relative flex flex-col items-center px-2 py-1.5 rounded-xl text-[10px] font-medium transition-all duration-200 ${active ? "text-accent" : "text-slate-600"}`}
-            >
-              {active && <span className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-[2px] rounded-full bg-accent" />}
-              <span className="mb-0.5">{icons[item.key]}</span>
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Mobile bottom nav — 5 primary items + More sheet */}
+      {(() => {
+        const primaryKeys = ["dashboard", "itinerario", "reservas", "checklist"];
+        const primaryItems = navItems.filter((i) => primaryKeys.includes(i.key));
+        const secondaryItems = navItems.filter((i) => !primaryKeys.includes(i.key));
+        const anySecondaryActive = secondaryItems.some(
+          (i) => pathname === i.href || (i.href !== base && pathname.startsWith(i.href))
+        );
 
-      {/* Mobile: floating settings trigger above bottom nav */}
-      <div className="md:hidden fixed bottom-16 right-3 z-40 flex flex-col gap-2 items-end">
-        <TripSettingsPanel
-          tripId={tripId}
-          tripName={tripName}
-          startDate={startDate}
-          endDate={endDate}
-          coverImage={coverImage}
-          isOwner={tripOwnerId === userId || userRole === "admin"}
-          currentUserId={userId}
-        />
-      </div>
+        return (
+          <>
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-white/[0.06] z-50 flex justify-around px-1"
+              style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
+
+              {primaryItems.map((item) => {
+                const active = pathname === item.href || (item.href !== base && pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[52px] px-3 py-2 rounded-xl text-[11px] font-medium transition-all duration-200 ${
+                      active ? "text-accent" : "text-slate-500"
+                    }`}
+                  >
+                    {active && (
+                      <span className="absolute -top-px left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-accent" />
+                    )}
+                    <span className={`transition-colors ${active ? "text-accent" : "text-slate-500"}`}>
+                      {icons[item.key]}
+                    </span>
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+
+              {/* "Más" button */}
+              <button
+                onClick={() => setMoreOpen((o) => !o)}
+                className={`flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[52px] px-3 py-2 rounded-xl text-[11px] font-medium transition-all duration-200 ${
+                  anySecondaryActive || moreOpen ? "text-accent" : "text-slate-500"
+                }`}
+              >
+                {(anySecondaryActive || moreOpen) && (
+                  <span className="absolute -top-px left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-accent" />
+                )}
+                <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                </svg>
+                <span>Más</span>
+              </button>
+            </nav>
+
+            {/* More sheet overlay */}
+            {moreOpen && (
+              <>
+                {/* Backdrop */}
+                <div
+                  className="md:hidden fixed inset-0 z-40 bg-black/40"
+                  onClick={() => setMoreOpen(false)}
+                />
+                {/* Sheet */}
+                <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-950 border-t border-white/10 rounded-t-2xl animate-slide-up"
+                  style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+                  {/* Handle */}
+                  <div className="flex justify-center pt-2 pb-3">
+                    <div className="w-10 h-1 rounded-full bg-white/20" />
+                  </div>
+                  {/* Settings row */}
+                  <div className="px-4 pb-2 flex items-center justify-between">
+                    <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest">Más opciones</p>
+                    <TripSettingsPanel
+                      tripId={tripId}
+                      tripName={tripName}
+                      startDate={startDate}
+                      endDate={endDate}
+                      coverImage={coverImage}
+                      isOwner={tripOwnerId === userId || userRole === "admin"}
+                      currentUserId={userId}
+                    />
+                  </div>
+                  {/* Secondary nav grid */}
+                  <div className="grid grid-cols-4 gap-1 px-3 pb-2">
+                    {secondaryItems.map((item) => {
+                      const active = pathname === item.href || (item.href !== base && pathname.startsWith(item.href));
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMoreOpen(false)}
+                          className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl text-[11px] font-medium transition-all ${
+                            active ? "bg-accent/15 text-accent" : "text-slate-400 hover:bg-white/5"
+                          }`}
+                        >
+                          <span>{icons[item.key]}</span>
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        );
+      })()}
     </>
   );
 }
