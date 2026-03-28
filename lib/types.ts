@@ -44,6 +44,7 @@ export type Reservation = {
   deadlineDate?: string | null;
   alert?: string | null;
   travelers: number;
+  travelerIds?: string | null;
   createdAt: string;
 };
 
@@ -234,6 +235,18 @@ export function formatDateShort(dateStr: string): string {
   const mm = date.getMonth() + 1;
   return `${day} ${dd}/${mm}`;
 }
+
+// ─── TRIP MEMBER ─────────────────────────────────────────
+export type TripMember = {
+  id: string;
+  userId: string;
+  tripId: string;
+  role: string;
+  user: {
+    id: string;
+    name: string;
+  };
+};
 
 export function getDaysUntil(dateStr: string): number {
   const target = new Date(dateStr + "T00:00:00");
