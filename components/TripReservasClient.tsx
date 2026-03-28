@@ -1,15 +1,16 @@
 "use client";
 import { useState, useMemo } from "react";
-import { Reservation, RESERVATION_TYPES, ESTADOS, CATEGORIA_LABELS, MONEDAS, MONEDA_SYMBOLS, PROVIDER_SUGGESTIONS, formatMoney, formatDateShort, toUSD } from "@/lib/types";
+import { Reservation, TripMember, RESERVATION_TYPES, ESTADOS, CATEGORIA_LABELS, MONEDAS, MONEDA_SYMBOLS, PROVIDER_SUGGESTIONS, formatMoney, formatDateShort, toUSD } from "@/lib/types";
 import { EstadoBadge, PrioridadBadge } from "./StatusBadge";
 
 type Props = {
   tripId: string;
   reservations: Reservation[];
   config: Record<string, string>;
+  members: TripMember[];
 };
 
-export default function TripReservasClient({ tripId, reservations: initial, config }: Props) {
+export default function TripReservasClient({ tripId, reservations: initial, config, members }: Props) {
   const [reservations, setReservations] = useState(initial);
   const [filtroType, setFiltroType] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
@@ -18,6 +19,7 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
   const [editing, setEditing] = useState<Reservation | null>(null);
   const [sortKey, setSortKey] = useState<"startDate" | "title" | "city" | "priceUSD" | "status">("startDate");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [vista, setVista] = useState<"reservas" | "viajeros">("reservas");
 
   function handleSort(key: typeof sortKey) {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -45,45 +47,83 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
 
   async function handleSave(data: Partial<Reservation>) {
     if (editing) {
+      const updated = { ...editing, ...data };
+      const prev = reservations;
+      setReservations((r) => r.map((x) => (x.id === editing.id ? updated : x)));
+      setModalOpen(false);
+      setEditing(null);
       const res = await fetch(`/api/trips/${tripId}/reservations/${editing.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...editing, ...data }),
       });
-      const updated = await res.json();
-      setReservations((prev) => prev.map((r) => (r.id === editing.id ? updated : r)));
+      if (!res.ok) setReservations(prev);
+      else {
+        const saved = await res.json();
+        setReservations((r) => r.map((x) => (x.id === editing.id ? saved : x)));
+      }
     } else {
+      const tempId = `temp-${Date.now()}`;
+      const optimistic: Reservation = { id: tempId, tripId, createdAt: new Date().toISOString(), ...data } as Reservation;
+      setReservations((r) => [...r, optimistic]);
+      setModalOpen(false);
+      setEditing(null);
       const res = await fetch(`/api/trips/${tripId}/reservations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, tripId }),
       });
-      const created = await res.json();
-      setReservations((prev) => [...prev, created]);
+      if (!res.ok) setReservations((r) => r.filter((x) => x.id !== tempId));
+      else {
+        const created = await res.json();
+        setReservations((r) => r.map((x) => (x.id === tempId ? created : x)));
+      }
     }
-    setModalOpen(false);
-    setEditing(null);
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Eliminar esta reserva?")) return;
-    await fetch(`/api/trips/${tripId}/reservations/${id}`, { method: "DELETE" });
-    setReservations((prev) => prev.filter((r) => r.id !== id));
+    const prev = reservations;
+    setReservations((r) => r.filter((x) => x.id !== id));
+    const res = await fetch(`/api/trips/${tripId}/reservations/${id}`, { method: "DELETE" });
+    if (!res.ok) setReservations(prev);
   }
 
   async function toggleStatus(r: Reservation) {
     const order = ["por-reservar", "pendiente", "confirmado", "cancelado"];
     const next = order[(order.indexOf(r.status) + 1) % order.length];
+    const prev = reservations;
+    setReservations((all) => all.map((x) => (x.id === r.id ? { ...x, status: next as Reservation["status"] } : x)));
     const res = await fetch(`/api/trips/${tripId}/reservations/${r.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...r, status: next }),
     });
-    const updated = await res.json();
-    setReservations((prev) => prev.map((x) => (x.id === r.id ? updated : x)));
+    if (!res.ok) setReservations(prev);
   }
 
   const inputClass = "glass-input !py-1.5 !px-3 text-sm";
+
+  function parseTravelerIds(r: Reservation): string[] {
+    try { return JSON.parse(r.travelerIds ?? "[]"); } catch { return []; }
+  }
+
+  function costPerTraveler(r: Reservation): number {
+    const ids = parseTravelerIds(r);
+    const count = ids.length || r.travelers || 1;
+    return r.priceUSD / count;
+  }
+
+  const MEMBER_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"];
+
+  function memberColor(userId: string): string {
+    const idx = members.findIndex((m) => m.userId === userId);
+    return MEMBER_COLORS[idx % MEMBER_COLORS.length] ?? "#6366f1";
+  }
+
+  function memberName(userId: string): string {
+    return members.find((m) => m.userId === userId)?.user.name ?? userId.slice(0, 6);
+  }
 
   return (
     <div className="p-4 md:p-8">
@@ -92,12 +132,28 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
           <h1 className="text-2xl font-display font-semibold tracking-tight text-c-heading">Reservas</h1>
           <p className="text-sm text-c-muted mt-0.5">{filtered.length} reservas &middot; ${totalUSD.toLocaleString()} USD</p>
         </div>
-        <button
-          onClick={() => { setEditing(null); setModalOpen(true); }}
-          className="px-5 py-2.5 text-sm bg-accent text-white rounded-2xl hover:bg-terra-500 font-medium shadow-glass-sm hover:shadow-glass transition-all"
-        >
-          Agregar
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-xl overflow-hidden border border-white/10 text-xs">
+            <button
+              onClick={() => setVista("reservas")}
+              className={`px-3 py-1.5 transition-colors ${vista === "reservas" ? "bg-accent text-white" : "text-c-muted hover:text-c-text"}`}
+            >
+              Por reserva
+            </button>
+            <button
+              onClick={() => setVista("viajeros")}
+              className={`px-3 py-1.5 transition-colors ${vista === "viajeros" ? "bg-accent text-white" : "text-c-muted hover:text-c-text"}`}
+            >
+              Por viajero
+            </button>
+          </div>
+          <button
+            onClick={() => { setEditing(null); setModalOpen(true); }}
+            className="px-5 py-2.5 text-sm bg-accent text-white rounded-2xl hover:bg-terra-500 font-medium shadow-glass-sm hover:shadow-glass transition-all"
+          >
+            Agregar
+          </button>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -114,133 +170,213 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
         </select>
       </div>
 
-      {/* Desktop table */}
-      <div className="hidden md:block glass-card rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-white/30 border-b border-white/20">
-            <tr>
-              {(
-                [
-                  { key: "title",     label: "Reserva", align: "left"  },
-                  { key: "city",      label: "Ciudad",  align: "left"  },
-                  { key: "startDate", label: "Fechas",  align: "left"  },
-                ] as { key: typeof sortKey; label: string; align: string }[]
-              ).map(({ key, label, align }) => {
-                const active = sortKey === key;
-                return (
-                  <th key={key} className={`px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider text-${align}`}>
-                    <button onClick={() => handleSort(key)} className={`flex items-center gap-1 hover:text-c-text transition-colors ${active ? "text-c-text" : ""}`}>
-                      {label}
-                      <span className="text-[9px]">{active ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
+      {vista === "reservas" && (
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block glass-card rounded-2xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-white/30 border-b border-white/20">
+                <tr>
+                  {(
+                    [
+                      { key: "title",     label: "Reserva", align: "left"  },
+                      { key: "city",      label: "Ciudad",  align: "left"  },
+                      { key: "startDate", label: "Fechas",  align: "left"  },
+                    ] as { key: typeof sortKey; label: string; align: string }[]
+                  ).map(({ key, label, align }) => {
+                    const active = sortKey === key;
+                    return (
+                      <th key={key} className={`px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider text-${align}`}>
+                        <button onClick={() => handleSort(key)} className={`flex items-center gap-1 hover:text-c-text transition-colors ${active ? "text-c-text" : ""}`}>
+                          {label}
+                          <span className="text-[9px]">{active ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
+                        </button>
+                      </th>
+                    );
+                  })}
+                  <th className="text-right px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Costo</th>
+                  <th className="text-right px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">
+                    <button onClick={() => handleSort("priceUSD")} className={`flex items-center gap-1 ml-auto hover:text-c-text transition-colors ${sortKey === "priceUSD" ? "text-c-text" : ""}`}>
+                      USD
+                      <span className="text-[9px]">{sortKey === "priceUSD" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
                     </button>
                   </th>
-                );
-              })}
-              <th className="text-right px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Costo</th>
-              <th className="text-right px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">
-                <button onClick={() => handleSort("priceUSD")} className={`flex items-center gap-1 ml-auto hover:text-c-text transition-colors ${sortKey === "priceUSD" ? "text-c-text" : ""}`}>
-                  USD
-                  <span className="text-[9px]">{sortKey === "priceUSD" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
-                </button>
-              </th>
-              <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">
-                <button onClick={() => handleSort("status")} className={`flex items-center gap-1 hover:text-c-text transition-colors ${sortKey === "status" ? "text-c-text" : ""}`}>
-                  Estado
-                  <span className="text-[9px]">{sortKey === "status" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
-                </button>
-              </th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/10">
+                  <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">
+                    <button onClick={() => handleSort("status")} className={`flex items-center gap-1 hover:text-c-text transition-colors ${sortKey === "status" ? "text-c-text" : ""}`}>
+                      Estado
+                      <span className="text-[9px]">{sortKey === "status" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Viajeros</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {filtered.map((r) => (
+                  <tr key={r.id} className="hover:bg-white/[0.04] dark:hover:bg-white/[0.06] transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        {r.attachmentUrl && /\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(r.attachmentUrl) && (
+                          <img src={r.attachmentUrl} alt="" className="w-9 h-9 rounded-lg object-cover border border-white/20 shrink-0" />
+                        )}
+                        <div>
+                          <p className="font-medium text-c-heading">{r.title}</p>
+                          {r.alert && <p className="text-xs text-amber-600 mt-0.5 line-clamp-1">{r.alert}</p>}
+                          {r.provider && <p className="text-xs text-c-muted">{r.provider}</p>}
+                          {r.attachmentUrl && !/\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(r.attachmentUrl) && (
+                            <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline">
+                              Adjunto
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-c-muted">{r.city}</td>
+                    <td className="px-4 py-3 text-c-muted whitespace-nowrap text-xs">
+                      {formatDateShort(r.startDate)}
+                      {r.endDate && r.endDate !== r.startDate && ` — ${formatDateShort(r.endDate)}`}
+                    </td>
+                    <td className="px-4 py-3 text-right text-c-muted">{formatMoney(r.price, r.currency)}</td>
+                    <td className="px-4 py-3 text-right font-medium text-c-heading">${r.priceUSD.toLocaleString()}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => toggleStatus(r)}><EstadoBadge estado={r.status} /></button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1 flex-wrap">
+                        {parseTravelerIds(r).length > 0
+                          ? parseTravelerIds(r).map((uid) => (
+                              <span
+                                key={uid}
+                                title={memberName(uid)}
+                                className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-semibold text-white"
+                                style={{ backgroundColor: memberColor(uid) }}
+                              >
+                                {memberName(uid).charAt(0).toUpperCase()}
+                              </span>
+                            ))
+                          : <span className="text-xs text-c-subtle">{r.travelers}</span>
+                        }
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        {r.reservationUrl && (
+                          <a href={r.reservationUrl} target="_blank" rel="noopener noreferrer"
+                            className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/[0.06] transition-colors">
+                            Reservar
+                          </a>
+                        )}
+                        <button onClick={() => { setEditing(r); setModalOpen(true); }}
+                          className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/[0.06] transition-colors">
+                          Editar
+                        </button>
+                        <button onClick={() => handleDelete(r.id)}
+                          className="text-xs text-c-subtle hover:text-red-500 px-2 py-1 rounded-xl hover:bg-red-50/50 transition-colors">
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
             {filtered.map((r) => (
-              <tr key={r.id} className="hover:bg-white/[0.04] dark:hover:bg-white/[0.06] transition-colors">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2.5">
-                    {r.attachmentUrl && /\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(r.attachmentUrl) && (
-                      <img src={r.attachmentUrl} alt="" className="w-9 h-9 rounded-lg object-cover border border-white/20 shrink-0" />
-                    )}
-                    <div>
-                      <p className="font-medium text-c-heading">{r.title}</p>
-                      {r.alert && <p className="text-xs text-amber-600 mt-0.5 line-clamp-1">{r.alert}</p>}
-                      {r.provider && <p className="text-xs text-c-muted">{r.provider}</p>}
-                      {r.attachmentUrl && !/\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(r.attachmentUrl) && (
-                        <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline">
-                          📎 Adjunto
-                        </a>
-                      )}
-                    </div>
+              <div key={r.id} className="glass-card rounded-2xl p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-c-heading text-sm">{r.title}</p>
+                    <p className="text-xs text-c-muted mt-0.5">{r.city} &middot; {formatDateShort(r.startDate)}</p>
                   </div>
-                </td>
-                <td className="px-4 py-3 text-c-muted">{r.city}</td>
-                <td className="px-4 py-3 text-c-muted whitespace-nowrap text-xs">
-                  {formatDateShort(r.startDate)}
-                  {r.endDate && r.endDate !== r.startDate && ` — ${formatDateShort(r.endDate)}`}
-                </td>
-                <td className="px-4 py-3 text-right text-c-muted">{formatMoney(r.price, r.currency)}</td>
-                <td className="px-4 py-3 text-right font-medium text-c-heading">${r.priceUSD.toLocaleString()}</td>
-                <td className="px-4 py-3">
+                  <div className="text-right ml-3">
+                    <p className="text-xs text-c-muted">{formatMoney(r.price, r.currency)}</p>
+                    <p className="text-sm font-medium text-c-heading">${r.priceUSD.toLocaleString()}</p>
+                  </div>
+                </div>
+                {r.alert && <p className="text-xs text-amber-600 mb-2">{r.alert}</p>}
+                <div className="flex items-center justify-between">
                   <button onClick={() => toggleStatus(r)}><EstadoBadge estado={r.status} /></button>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-1">
+                  <div className="flex gap-2">
                     {r.reservationUrl && (
                       <a href={r.reservationUrl} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/[0.06] transition-colors">
-                        Reservar
-                      </a>
+                        className="text-xs text-c-muted hover:text-accent transition-colors">Reservar</a>
                     )}
                     <button onClick={() => { setEditing(r); setModalOpen(true); }}
-                      className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/[0.06] transition-colors">
-                      Editar
-                    </button>
-                    <button onClick={() => handleDelete(r.id)}
-                      className="text-xs text-c-subtle hover:text-red-500 px-2 py-1 rounded-xl hover:bg-red-50/50 transition-colors">
-                      Eliminar
-                    </button>
+                      className="text-xs text-c-muted hover:text-accent transition-colors">Editar</button>
                   </div>
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-3">
-        {filtered.map((r) => (
-          <div key={r.id} className="glass-card rounded-2xl p-4">
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-c-heading text-sm">{r.title}</p>
-                <p className="text-xs text-c-muted mt-0.5">{r.city} &middot; {formatDateShort(r.startDate)}</p>
-              </div>
-              <div className="text-right ml-3">
-                <p className="text-xs text-c-muted">{formatMoney(r.price, r.currency)}</p>
-                <p className="text-sm font-medium text-c-heading">${r.priceUSD.toLocaleString()}</p>
-              </div>
-            </div>
-            {r.alert && <p className="text-xs text-amber-600 mb-2">{r.alert}</p>}
-            <div className="flex items-center justify-between">
-              <button onClick={() => toggleStatus(r)}><EstadoBadge estado={r.status} /></button>
-              <div className="flex gap-2">
-                {r.reservationUrl && (
-                  <a href={r.reservationUrl} target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-c-muted hover:text-accent transition-colors">Reservar</a>
-                )}
-                <button onClick={() => { setEditing(r); setModalOpen(true); }}
-                  className="text-xs text-c-muted hover:text-accent transition-colors">Editar</button>
-              </div>
-            </div>
           </div>
-        ))}
-      </div>
+        </>
+      )}
+
+      {vista === "viajeros" && (
+        <div className="space-y-4">
+          {members.length === 0 && (
+            <p className="text-sm text-c-muted text-center py-8">No hay viajeros en este viaje.</p>
+          )}
+          {members.map((member) => {
+            const myReservations = reservations.filter((r) => {
+              const ids = parseTravelerIds(r);
+              return ids.length === 0 || ids.includes(member.userId);
+            });
+            const total = myReservations.reduce((s, r) => s + costPerTraveler(r), 0);
+            return (
+              <div key={member.userId} className="glass-card rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 flex items-center justify-between border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm"
+                      style={{ backgroundColor: memberColor(member.userId) }}
+                    >
+                      {member.user.name.charAt(0).toUpperCase()}
+                    </span>
+                    <div>
+                      <p className="font-medium text-c-heading text-sm">{member.user.name}</p>
+                      <p className="text-xs text-c-muted capitalize">{member.role}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-c-muted">Total</p>
+                    <p className="font-semibold text-c-heading">${Math.round(total).toLocaleString()} USD</p>
+                  </div>
+                </div>
+                <div className="divide-y divide-white/[0.06]">
+                  {myReservations.length === 0 && (
+                    <p className="text-xs text-c-muted px-5 py-3">Sin reservas asignadas.</p>
+                  )}
+                  {myReservations.map((r) => (
+                    <div key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-c-muted text-xs shrink-0">{formatDateShort(r.startDate)}</span>
+                        <span className="text-c-heading truncate">{r.title}</span>
+                        <span className="text-c-subtle text-xs shrink-0">{r.city}</span>
+                      </div>
+                      <div className="text-right ml-4 shrink-0">
+                        <p className="font-medium text-c-heading">${Math.round(costPerTraveler(r)).toLocaleString()}</p>
+                        {parseTravelerIds(r).length > 1 && (
+                          <p className="text-[10px] text-c-muted">${r.priceUSD.toLocaleString()} ÷ {parseTravelerIds(r).length}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {modalOpen && (
         <ReservationModal
           reservation={editing}
           tcEurUsd={tcEurUsd}
           tcArsMep={tcArsMep}
+          members={members}
           onSave={handleSave}
           onClose={() => { setModalOpen(false); setEditing(null); }}
         />
@@ -253,24 +389,41 @@ function ReservationModal({
   reservation,
   tcEurUsd,
   tcArsMep,
+  members,
   onSave,
   onClose,
 }: {
   reservation: Reservation | null;
   tcEurUsd: number;
   tcArsMep: number;
+  members: TripMember[];
   onSave: (data: Partial<Reservation>) => void;
   onClose: () => void;
 }) {
+  const allMemberIds = members.map((m) => m.userId);
+
   const empty: Partial<Reservation> = {
     type: "alojamiento", title: "", city: "", country: "Italia",
     startDate: "2026-07-", status: "por-reservar", priority: "media",
-    currency: "EUR", price: 0, priceUSD: 0, travelers: 2,
+    currency: "EUR", price: 0, priceUSD: 0, travelers: members.length || 2,
     freeCancellation: false, paid: false,
+    travelerIds: JSON.stringify(allMemberIds),
   };
   const [form, setForm] = useState<Partial<Reservation>>(reservation ?? empty);
   const inputClass = "glass-input";
   const labelClass = "block text-xs font-medium text-c-muted mb-1";
+
+  // Parse travelerIds for checkboxes
+  const selectedIds: string[] = (() => {
+    try { return JSON.parse(form.travelerIds ?? "null") ?? allMemberIds; } catch { return allMemberIds; }
+  })();
+
+  function toggleMember(userId: string) {
+    const next = selectedIds.includes(userId)
+      ? selectedIds.filter((id) => id !== userId)
+      : [...selectedIds, userId];
+    setForm((f) => ({ ...f, travelerIds: JSON.stringify(next), travelers: next.length }));
+  }
 
   function update(field: string, value: string | number | boolean) {
     const next = { ...form, [field]: value };
@@ -411,6 +564,38 @@ function ReservationModal({
             <textarea value={form.alert ?? ""} onChange={(e) => update("alert", e.target.value)}
               rows={2} placeholder="Accion requerida..." className={`${inputClass} !border-amber-200/50 !bg-amber-50/30 resize-none`} />
           </div>
+
+          {members.length > 0 && (
+            <div>
+              <label className={labelClass}>
+                Viajeros incluidos
+                {(form.priceUSD ?? 0) > 0 && selectedIds.length > 0 && (
+                  <span className="ml-2 text-accent font-medium">
+                    ${Math.round((form.priceUSD ?? 0) / selectedIds.length).toLocaleString()} USD / persona
+                  </span>
+                )}
+              </label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {members.map((m) => {
+                  const selected = selectedIds.includes(m.userId);
+                  return (
+                    <button
+                      key={m.userId}
+                      type="button"
+                      onClick={() => toggleMember(m.userId)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                        selected
+                          ? "bg-accent/20 border-accent/40 text-accent"
+                          : "bg-white/[0.04] border-white/10 text-c-muted hover:border-white/20"
+                      }`}
+                    >
+                      {m.user.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-5">
             <label className="flex items-center gap-2 text-sm text-c-muted cursor-pointer">
