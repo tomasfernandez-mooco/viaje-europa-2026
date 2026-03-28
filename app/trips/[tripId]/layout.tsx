@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { canAccessTrip } from "@/lib/tripAccess";
 import TripSidebar from "@/components/TripSidebar";
 import { AuthProvider } from "@/lib/auth-context";
+import { ToastProvider } from "@/components/Toast";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,7 @@ export default async function TripLayout({
 
   return (
     <AuthProvider>
+      <ToastProvider>
       <div className="flex h-screen overflow-hidden">
         <TripSidebar
           tripId={params.tripId}
@@ -63,6 +65,7 @@ export default async function TripLayout({
           {children}
         </main>
       </div>
+      </ToastProvider>
     </AuthProvider>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/Toast";
 
 type Location = {
   id: string;
@@ -28,6 +29,7 @@ type Props = {
 
 export default function TripSettingsPanel({ tripId, tripName, startDate, endDate, coverImage, isOwner, currentUserId }: Props) {
   const router = useRouter();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"viaje" | "destinos" | "viajeros">("viaje");
 
@@ -52,7 +54,7 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
     try {
       const base64 = await compressImage(file, 1400, 0.82);
       setTripForm(f => ({ ...f, coverImage: base64 }));
-    } catch { alert("Error al procesar la imagen"); }
+    } catch { toast("Error al procesar la imagen", "error"); }
     setUploading(false);
   }
 
@@ -125,6 +127,7 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
     setSavingTrip(false);
     setTripSaved(true);
     setTimeout(() => setTripSaved(false), 2000);
+    toast("Cambios guardados", "success");
     router.refresh();
   }
 
@@ -202,9 +205,9 @@ export default function TripSettingsPanel({ tripId, tripName, startDate, endDate
       if (data.length > 0) {
         setForm(f => ({ ...f, lat: String(parseFloat(data[0].lat).toFixed(6)), lng: String(parseFloat(data[0].lon).toFixed(6)) }));
       } else {
-        alert("No se encontraron coordenadas para esa ciudad");
+        toast("No se encontraron coordenadas para esa ciudad", "error");
       }
-    } catch { alert("Error al buscar coordenadas"); }
+    } catch { toast("Error al buscar coordenadas", "error"); }
     setGeocoding(false);
   }
 
