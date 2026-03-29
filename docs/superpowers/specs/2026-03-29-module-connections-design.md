@@ -71,7 +71,8 @@ Reservation data must be entered manually. Users have voucher images/PDFs with a
 
 **Form auto-fill:**
 - Extracted fields are merged into the form state. User reviews and can edit any field before saving.
-- The uploaded file URL is set as `attachmentUrl` (using the existing canvas compress + base64 pattern for images; for PDFs, store as data URI or external URL).
+- For images: the uploaded file is compressed client-side (same canvas pattern as cover images) and set as `attachmentUrl` as base64.
+- For PDFs: `attachmentUrl` is left unchanged — only the extracted text data is used to fill the form. PDFs are too large to store as base64.
 
 **Error handling:**
 - If Claude returns incomplete/unparseable data, show toast "No se pudo extraer toda la información — revisá los campos" and leave form partially filled.
@@ -88,7 +89,7 @@ Reservation data must be entered manually. Users have voucher images/PDFs with a
 ## Sub-proyecto 3: Telegram Bot (VibeTripper_bot)
 
 ### Bot: `@VibeTripper_bot`
-Token stored as `TELEGRAM_BOT_TOKEN` env var in Vercel.
+Token stored as `TELEGRAM_BOT_TOKEN` env var in Vercel. **Never commit the token to git.** Also add `TELEGRAM_SETUP_SECRET` (any random string) to protect the setup endpoint.
 
 ### Infrastructure
 
@@ -140,7 +141,7 @@ Sessions older than 10 minutes are considered expired (checked on read, cleaned 
 `POST /api/ocr/gasto` — same pattern as reservation OCR but extracts: `title` (merchant name), `amount` (number), `currency`, `date` (YYYY-MM-DD), `category` (comida/transporte/alojamiento/entretenimiento/compras/otro).
 
 ### Internal API calls from bot
-The webhook handler calls internal Next.js API routes directly (same process), passing the user's `userId` derived from the linked `telegramChatId`.
+The webhook handler calls shared utility functions directly (imported from `lib/`), NOT via HTTP fetch to its own API routes — Vercel serverless functions run in isolation so cross-route imports are more reliable. The `userId` is derived from the linked `telegramChatId` looked up in the DB.
 
 ### Files changed
 | File | Change |
