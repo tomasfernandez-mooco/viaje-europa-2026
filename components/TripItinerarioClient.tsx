@@ -173,6 +173,9 @@ export default function TripItinerarioClient({
   const [creatingForDate, setCreatingForDate] = useState<string | null>(null);
   const [activeItem, setActiveItem] = useState<ItineraryItem | null>(null);
   const [adjustingDays, setAdjustingDays] = useState(false);
+  const [locs, setLocs] = useState(locations);
+  const [editingCityForDate, setEditingCityForDate] = useState<string | null>(null);
+  const [cityDraft, setCityDraft] = useState("");
 
   const dates = generateDateRange(startDate, endDate);
 
@@ -260,6 +263,36 @@ export default function TripItinerarioClient({
     setCreatingForDate(null);
   }
 
+  async function saveDayCity(fecha: string, loc: typeof locs[number] | undefined) {
+    if (!cityDraft.trim()) { setEditingCityForDate(null); return; }
+    setEditingCityForDate(null);
+
+    if (loc) {
+      setLocs((prev) => prev.map((l) => l.id === loc.id ? { ...l, city: cityDraft } : l));
+      await fetch(`/api/trips/${tripId}/locations/${loc.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ city: cityDraft }),
+      });
+    } else {
+      const d = new Date(fecha + "T12:00:00");
+      const res = await fetch(`/api/trips/${tripId}/locations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          city: cityDraft,
+          country: "",
+          dateRange: String(d.getDate()),
+          orderIndex: locs.length,
+        }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setLocs((prev) => [...prev, created]);
+      }
+    }
+  }
+
   async function handleDelete(id: string) {
     if (!confirm("¿Eliminar este item del itinerario?")) return;
     try {
@@ -326,7 +359,7 @@ export default function TripItinerarioClient({
             .filter((i) => i.date === fecha)
             .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
           const hasAlert = dayItems.some((i) => i.alertLevel === "red" || i.alertLevel === "yellow");
-          const loc = locations.find((l) => {
+          const loc = locs.find((l) => {
             if (!l.dateRange) return false;
             return l.dateRange.includes(String(d.getDate()));
           });
@@ -353,10 +386,34 @@ export default function TripItinerarioClient({
                     <span className="text-xs font-medium bg-accent text-white px-2.5 py-0.5 rounded-xl">
                       Día {index + 1}
                     </span>
-                    {loc && (
-                      <p className="text-sm font-medium text-c-muted">
+                    {editingCityForDate === fecha ? (
+                      <input
+                        autoFocus
+                        value={cityDraft}
+                        onChange={(e) => setCityDraft(e.target.value)}
+                        onBlur={() => saveDayCity(fecha, loc)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveDayCity(fecha, loc);
+                          if (e.key === "Escape") setEditingCityForDate(null);
+                        }}
+                        className="text-sm font-medium text-c-text bg-white/30 border border-white/40 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-accent/30 w-32"
+                        placeholder="Ciudad..."
+                      />
+                    ) : loc ? (
+                      <button
+                        onClick={() => { setEditingCityForDate(fecha); setCityDraft(loc.city); }}
+                        className="text-sm font-medium text-c-muted hover:text-c-text hover:bg-white/20 rounded-lg px-1.5 py-0.5 transition-colors"
+                        title="Editar ciudad"
+                      >
                         {loc.city}{loc.country ? `, ${loc.country}` : ""}
-                      </p>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => { setEditingCityForDate(fecha); setCityDraft(""); }}
+                        className="text-[11px] text-c-subtle hover:text-accent transition-colors px-1.5 py-0.5 rounded-lg hover:bg-white/20"
+                      >
+                        + ciudad
+                      </button>
                     )}
                     {dayItems.length > 0 && (
                       <span className="text-[11px] text-c-subtle">
