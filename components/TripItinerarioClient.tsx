@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -176,6 +176,7 @@ export default function TripItinerarioClient({
   const [locs, setLocs] = useState(locations);
   const [editingCityForDate, setEditingCityForDate] = useState<string | null>(null);
   const [cityDraft, setCityDraft] = useState("");
+  const savingCityRef = useRef(false);
 
   const dates = generateDateRange(startDate, endDate);
 
@@ -264,16 +265,23 @@ export default function TripItinerarioClient({
   }
 
   async function saveDayCity(fecha: string, loc: typeof locs[number] | undefined) {
-    if (!cityDraft.trim()) { setEditingCityForDate(null); return; }
+    if (!cityDraft.trim() || savingCityRef.current) { setEditingCityForDate(null); return; }
+    savingCityRef.current = true;
     setEditingCityForDate(null);
 
     if (loc) {
+      const prevCity = loc.city;
       setLocs((prev) => prev.map((l) => l.id === loc.id ? { ...l, city: cityDraft } : l));
-      await fetch(`/api/trips/${tripId}/locations/${loc.id}`, {
+      const res = await fetch(`/api/trips/${tripId}/locations/${loc.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ city: cityDraft }),
       });
+      if (!res.ok) {
+        // Rollback
+        setLocs((prev) => prev.map((l) => l.id === loc.id ? { ...l, city: prevCity } : l));
+      }
+      savingCityRef.current = false;
     } else {
       const d = new Date(fecha + "T12:00:00");
       const res = await fetch(`/api/trips/${tripId}/locations`, {
@@ -290,6 +298,7 @@ export default function TripItinerarioClient({
         const created = await res.json();
         setLocs((prev) => [...prev, created]);
       }
+      savingCityRef.current = false;
     }
   }
 
