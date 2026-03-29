@@ -540,6 +540,7 @@ export default function TripItinerarioClient({
         <ItemModal
           mode="edit"
           item={editingItem}
+          reservations={reservations}
           onSave={handleSaveEdit}
           onClose={() => setEditingItem(null)}
         />
@@ -550,6 +551,7 @@ export default function TripItinerarioClient({
         <ItemModal
           mode="create"
           date={creatingForDate}
+          reservations={reservations}
           onCreate={handleCreate}
           onClose={() => setCreatingForDate(null)}
         />
@@ -561,12 +563,13 @@ export default function TripItinerarioClient({
 // ─── Item Modal ──────────────────────────────────────────────────────────────
 
 type ItemModalProps =
-  | { mode: "edit"; item: ItineraryItem; onSave: (i: ItineraryItem) => void; onClose: () => void }
-  | { mode: "create"; date: string; onCreate: (data: Partial<ItineraryItem>) => void; onClose: () => void };
+  | { mode: "edit"; item: ItineraryItem; reservations: Reservation[]; onSave: (i: ItineraryItem) => void; onClose: () => void }
+  | { mode: "create"; date: string; reservations: Reservation[]; onCreate: (data: Partial<ItineraryItem>) => void; onClose: () => void };
 
 function ItemModal(props: ItemModalProps) {
   const inputClass = "glass-input";
   const labelClass = "block text-xs font-medium text-c-muted mb-1";
+  const { reservations } = props;
 
   const [form, setForm] = useState<Partial<ItineraryItem>>(
     props.mode === "edit"
@@ -589,6 +592,28 @@ function ItemModal(props: ItemModalProps) {
     if (props.mode === "edit") props.onSave(form as ItineraryItem);
     else props.onCreate(form);
   }
+
+  function selectReservation(reservationId: string) {
+    if (!reservationId) {
+      setForm((f) => ({ ...f, reservationId: null }));
+      return;
+    }
+    const res = reservations.find((r) => r.id === reservationId);
+    if (!res) return;
+    setForm((f) => ({
+      ...f,
+      reservationId: res.id,
+      city: res.city || f.city,
+      country: res.country || f.country,
+    }));
+  }
+
+  const linkedReservation = reservations.find((r) => r.id === form.reservationId);
+
+  const TYPE_EMOJI: Record<string, string> = {
+    vuelo: "✈️", alojamiento: "🏨", transporte: "🚗", crucero: "🛳️",
+    actividad: "🎯", comida: "🍽️", seguro: "🛡️", shopping: "🛍️", otro: "📌",
+  };
 
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade">
@@ -695,6 +720,29 @@ function ItemModal(props: ItemModalProps) {
               placeholder="Notas adicionales..."
             />
           </div>
+          {/* Reservation link */}
+          {reservations.length > 0 && (
+            <div className="border-t border-white/10 pt-4">
+              <label className={labelClass}>Reserva vinculada</label>
+              <select
+                value={form.reservationId ?? ""}
+                onChange={(e) => selectReservation(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">— Sin vincular —</option>
+                {reservations.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {TYPE_EMOJI[r.type] ?? "📌"} {r.title} · {r.startDate.slice(5)} · {r.city}
+                  </option>
+                ))}
+              </select>
+              {linkedReservation && (
+                <p className="text-[11px] text-c-subtle mt-1.5">
+                  Ciudad/país completados desde la reserva. Podés editarlos manualmente.
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <div className="px-6 py-4 border-t border-white/15 flex justify-end gap-3">
           <button
