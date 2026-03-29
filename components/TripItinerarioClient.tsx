@@ -18,6 +18,7 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   ItineraryItem,
   Location,
+  Reservation,
   CATEGORIA_LABELS,
   CATEGORIA_COLORS,
   ALERT_COLORS,
@@ -31,6 +32,7 @@ type Props = {
   endDate: string;
   items: ItineraryItem[];
   locations: Location[];
+  reservations: Reservation[];
 };
 
 const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
@@ -163,6 +165,7 @@ export default function TripItinerarioClient({
   endDate: initialEndDate,
   items: initialItems,
   locations,
+  reservations,
 }: Props) {
   const [items, setItems] = useState(initialItems);
   const [endDate, setEndDate] = useState(initialEndDate);
