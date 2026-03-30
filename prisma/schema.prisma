@@ -32,15 +32,16 @@ model Trip {
 
 // ─── USER ───────────────────────────────────────────────
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  password  String
-  avatar    String?
-  role      String   @default("traveler")
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  email          String   @unique
+  name           String
+  password       String
+  avatar         String?
+  role           String   @default("traveler")
+  telegramChatId String?
+  createdAt      DateTime @default(now())
 
-  trips          Trip[]
+  trips           Trip[]
   tripMemberships TripMember[]
 
   @@map("users")
@@ -178,4 +179,14 @@ model Expense {
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
   @@map("expenses")
+}
+
+// ─── TELEGRAM SESSION ────────────────────────────────────
+model TelegramSession {
+  chatId    String   @id
+  state     String   @default("idle")
+  data      String?
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("telegram_sessions")
 }

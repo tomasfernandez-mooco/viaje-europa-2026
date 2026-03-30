@@ -30,6 +30,11 @@ export async function register() {
         label: "trip_members table",
       },
       { sql: 'ALTER TABLE itinerary_items ADD COLUMN "orderIndex" INTEGER NOT NULL DEFAULT 0', label: "itinerary_items.orderIndex" },
+      { sql: 'ALTER TABLE users ADD COLUMN "telegramChatId" TEXT', label: "users.telegramChatId" },
+      {
+        sql: `CREATE TABLE IF NOT EXISTS "telegram_sessions" ("chatId" TEXT NOT NULL PRIMARY KEY, "state" TEXT NOT NULL DEFAULT 'idle', "data" TEXT, "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+        label: "telegram_sessions table",
+      },
     ];
 
     for (const { sql, label } of migrations) {

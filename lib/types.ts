@@ -265,3 +265,10 @@ export function generateDateRange(startDate: string, endDate: string): string[] 
   }
   return dates;
 }
+
+export type TelegramSession = {
+  chatId: string;
+  state: string;
+  data: string | null;
+  updatedAt: string;
+};
