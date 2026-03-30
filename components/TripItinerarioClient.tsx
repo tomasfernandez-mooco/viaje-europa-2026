@@ -73,12 +73,13 @@ function TrashIcon() {
 
 type ItemRowProps = {
   item: ItineraryItem;
+  reservations?: Reservation[];
   onEdit: (item: ItineraryItem) => void;
   onDelete: (id: string) => void;
   isDragOverlay?: boolean;
 };
 
-function ItemRowContent({ item, onEdit, onDelete, isDragOverlay }: ItemRowProps) {
+function ItemRowContent({ item, reservations, onEdit, onDelete, isDragOverlay }: ItemRowProps) {
   function getAlertDot(level: string | null | undefined) {
     if (!level || level === "green") return null;
     const color = ALERT_COLORS[level] ?? ALERT_COLORS.green;
@@ -101,6 +102,25 @@ function ItemRowContent({ item, onEdit, onDelete, isDragOverlay }: ItemRowProps)
         <div className="flex items-center gap-2 flex-wrap">
           {item.time && <span className="text-xs text-c-muted font-mono">{item.time}</span>}
           <p className="text-sm font-medium text-c-text">{item.title}</p>
+          {item.reservationId && reservations && (() => {
+            const res = reservations.find((r) => r.id === item.reservationId);
+            if (!res) return null;
+            const TYPE_EMOJI: Record<string, string> = {
+              vuelo: "✈️", alojamiento: "🏨", transporte: "🚗", crucero: "🛳️",
+              actividad: "🎯", comida: "🍽️", otro: "📌",
+            };
+            const STATUS_BG: Record<string, string> = {
+              confirmado: "bg-green-100 text-green-700 border-green-200",
+              pendiente: "bg-yellow-100 text-yellow-700 border-yellow-200",
+              "por-reservar": "bg-red-100 text-red-700 border-red-200",
+              cancelado: "bg-gray-100 text-gray-500 border-gray-200",
+            };
+            return (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-lg border ${STATUS_BG[res.status] ?? "bg-white/40 text-c-muted border-white/20"}`}>
+                {TYPE_EMOJI[res.type] ?? "📌"} {res.status}
+              </span>
+            );
+          })()}
         </div>
         {item.description && (
           <p className="text-xs text-c-muted mt-0.5 truncate">{item.description}</p>
@@ -132,10 +152,12 @@ function ItemRowContent({ item, onEdit, onDelete, isDragOverlay }: ItemRowProps)
 
 function SortableItem({
   item,
+  reservations,
   onEdit,
   onDelete,
 }: {
   item: ItineraryItem;
+  reservations?: Reservation[];
   onEdit: (item: ItineraryItem) => void;
   onDelete: (id: string) => void;
 }) {
@@ -152,7 +174,7 @@ function SortableItem({
       >
         <GripIcon />
       </div>
-      <ItemRowContent item={item} onEdit={onEdit} onDelete={onDelete} />
+      <ItemRowContent item={item} reservations={reservations} onEdit={onEdit} onDelete={onDelete} />
     </div>
   );
 }
@@ -489,7 +511,7 @@ export default function TripItinerarioClient({
                     <SortableContext items={dayItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
                       <div className="space-y-1">
                         {dayItems.map((item) => (
-                          <SortableItem key={item.id} item={item} onEdit={setEditingItem} onDelete={handleDelete} />
+                          <SortableItem key={item.id} item={item} reservations={reservations} onEdit={setEditingItem} onDelete={handleDelete} />
                         ))}
                       </div>
                     </SortableContext>
@@ -499,7 +521,7 @@ export default function TripItinerarioClient({
                           <div className="p-1 text-c-subtle mt-1 shrink-0">
                             <GripIcon />
                           </div>
-                          <ItemRowContent item={activeItem} onEdit={() => {}} onDelete={() => {}} isDragOverlay />
+                          <ItemRowContent item={activeItem} reservations={reservations} onEdit={() => {}} onDelete={() => {}} isDragOverlay />
                         </div>
                       ) : null}
                     </DragOverlay>
