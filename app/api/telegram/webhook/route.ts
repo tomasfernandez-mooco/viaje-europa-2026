@@ -27,6 +27,7 @@ type TgMessage = {
   chat: { id: number };
   text?: string;
   photo?: { file_id: string; file_size: number }[];
+  document?: { file_id: string; file_size: number; file_name?: string };
 };
 type TgCallbackQuery = {
   id: string;
@@ -112,9 +113,14 @@ async function handleMessage(msg: TgMessage) {
     return;
   }
 
-  // Photo: route to photo flow
+  // Photo or Document: route to document flow
   if (msg.photo && msg.photo.length > 0) {
     await handlePhoto(chatId, msg.photo);
+    return;
+  }
+
+  if (msg.document) {
+    await handleDocument(chatId, msg.document);
     return;
   }
 
@@ -187,6 +193,30 @@ async function handlePhoto(chatId: string, photos: { file_id: string; file_size:
 
   // Ask what this is
   await upsertSession(chatId, "awaiting_type", { fileId: photo.file_id, userId: user.id });
+
+  await sendMessage(chatId, "¿Qué es esto?", {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "📋 Voucher de reserva", callback_data: "type:reserva" },
+          { text: "🧾 Ticket / gasto", callback_data: "type:gasto" },
+        ],
+      ],
+    },
+  });
+}
+
+// ─── Document flow (PDFs and files) ───────────────────────────────────────────
+
+async function handleDocument(chatId: string, document: { file_id: string; file_size: number; file_name?: string }) {
+  const user = await getUserByChatId(chatId);
+  if (!user) {
+    await sendMessage(chatId, "Primero vinculá tu cuenta con /start");
+    return;
+  }
+
+  // Ask what this is
+  await upsertSession(chatId, "awaiting_type", { fileId: document.file_id, userId: user.id });
 
   await sendMessage(chatId, "¿Qué es esto?", {
     reply_markup: {
