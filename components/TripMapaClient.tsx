@@ -126,7 +126,14 @@ export default function TripMapaClient({ tripId, locations, reservations, itiner
     variant: "itinerary" as const,
   }));
 
-  const mapMarkers = [...locationMarkers, ...itineraryMarkers];
+  // Filter location markers to only include cities that are in the itinerary
+  const itineraryPlaceCities = new Set(itineraryPlaces.map(p => p.city.toLowerCase().trim()));
+  const filteredLocationMarkers = locationMarkers.filter(l =>
+    itineraryPlaceCities.has(l.city.toLowerCase().trim())
+  );
+
+  // Combine filtered locations with geocoded itinerary places (prefer itinerary for complete coverage)
+  const mapMarkers = itineraryMarkers.length > 0 ? itineraryMarkers : filteredLocationMarkers;
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">

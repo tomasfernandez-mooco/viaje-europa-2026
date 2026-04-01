@@ -147,21 +147,35 @@ async function handleMessage(msg: TgMessage) {
 // ─── Email linking ────────────────────────────────────────────────────────────
 
 async function handleEmailLinking(chatId: string, email: string) {
-  // RFC5322-like email validation
+  // Improved RFC5322-like email validation
+  // Allows most common email formats while rejecting obviously invalid ones
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+
+  const trimmedEmail = email.trim();
+
+  console.log(`[telegram-webhook] email linking attempt: "${trimmedEmail}", length=${trimmedEmail.length}`);
+
+  if (!trimmedEmail || trimmedEmail.length === 0) {
+    await sendMessage(chatId, "❌ Por favor envía un email válido.");
+    return;
+  }
+
+  if (!emailRegex.test(trimmedEmail)) {
+    console.log(`[telegram-webhook] email validation failed for: "${trimmedEmail}"`);
     await sendMessage(chatId, "❌ Email inválido. Por favor envía un email válido (ej: usuario@example.com)");
     return;
   }
 
   try {
     // Normalize email to lowercase for consistency
-    const normalizedEmail = email.toLowerCase();
+    const normalizedEmail = trimmedEmail.toLowerCase();
 
-    // Check for duplicate telegram linking (same email already linked to different chat)
-    // This is checked by linkUserByEmail function on database level
-    
-    const user = await linkUserByEmail(email, chatId);
+    console.log(`[telegram-webhook] attempting to link user with email: "${normalizedEmail}", chatId=${chatId}`);
+
+    const user = await linkUserByEmail(normalizedEmail, chatId);
+
+    console.log(`[telegram-webhook] user linked successfully: ${user.id}, name=${user.name}`);
+
     await clearSession(chatId);
     await sendMessage(
       chatId,
@@ -170,12 +184,18 @@ async function handleEmailLinking(chatId: string, email: string) {
   } catch (error) {
     // Log the error for debugging
     const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error("[telegram-webhook] Email validation failed:", errorMsg);
+    const errorStack = error instanceof Error ? error.stack : "No stack available";
+
+    console.error("[telegram-webhook] Email linking failed:", errorMsg);
+    console.error("[telegram-webhook] Error stack:", errorStack);
 
     await sendMessage(
       chatId,
-      `❌ No encontré una cuenta con el email <code>${email}</code>.\n\nRegistrate en la app primero, o probá con otro email.`
+      `❌ No encontré una cuenta con el email <code>${trimmedEmail}</code>.\n\nRegistrate en la app primero, o probá con otro email.`
     );
+
+    // Clear the session on error so user can retry
+    await clearSession(chatId);
   }
 }
 
@@ -298,7 +318,7 @@ async function handleOCR(chatId: string, fileId: string, userId: string, type: s
     const prompt = type === "reserva" ? OCR_PROMPT_RESERVA : OCR_PROMPT_GASTO;
 
     const response = await client.messages.create({
-      model: "claude-opus-4-5",
+      model: "claude-opus-4-5-20250805",
       max_tokens: 1024,
       messages: [
         {

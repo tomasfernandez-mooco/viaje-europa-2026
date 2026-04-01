@@ -30,13 +30,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tri
     if (contentType.includes("multipart/form-data")) {
       // Handle multipart: extract form fields + file
       const formData = await req.formData();
-      
+
       const file = formData.get("file") as File | null;
       if (file) {
         // Upload file
         const uploadFormData = new FormData();
         uploadFormData.append("file", file);
-        
+
         const uploadResponse = await fetch(`${req.nextUrl.origin}/api/upload`, {
           method: "POST",
           body: uploadFormData,
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tri
             "Authorization": `Bearer ${req.headers.get("authorization") || ""}`
           }
         });
-        
+
         if (uploadResponse.ok) {
           const uploadData = await uploadResponse.json();
           receiptUrl = uploadData.url;
@@ -62,6 +62,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tri
     } else {
       // Handle JSON
       expenseData = await req.json();
+      // Extract receiptUrl from JSON if provided
+      if (expenseData.receiptUrl) {
+        receiptUrl = expenseData.receiptUrl;
+        delete expenseData.receiptUrl; // Remove from expenseData so it doesn't get passed to DB
+      }
     }
 
     // Create expense

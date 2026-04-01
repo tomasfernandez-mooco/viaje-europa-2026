@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -170,8 +170,36 @@ export default function TripItinerarioClient({
   const [creatingForDate, setCreatingForDate] = useState<string | null>(null);
   const [activeItem, setActiveItem] = useState<ItineraryItem | null>(null);
   const [adjustingDays, setAdjustingDays] = useState(false);
+  const [dayTitles, setDayTitles] = useState<Record<string, string>>({});
+  const [editingDayTitle, setEditingDayTitle] = useState<string | null>(null);
+  const [dayTitleText, setDayTitleText] = useState("");
 
   const dates = generateDateRange(startDate, endDate);
+
+  // Fetch custom day titles on mount
+  useEffect(() => {
+    const fetchDayTitles = async () => {
+      try {
+        const res = await fetch(`/api/trips/${tripId}`);
+        if (res.ok) {
+          const trip = await res.json();
+          if (trip.config) {
+            const titles: Record<string, string> = {};
+            trip.config.forEach((cfg: { key: string; value: string }) => {
+              if (cfg.key.startsWith("dayTitle_")) {
+                const date = cfg.key.replace("dayTitle_", "");
+                titles[date] = cfg.value;
+              }
+            });
+            setDayTitles(titles);
+          }
+        }
+      } catch (e) {
+        console.error("Error fetching day titles:", e);
+      }
+    };
+    fetchDayTitles();
+  }, [tripId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -265,6 +293,24 @@ export default function TripItinerarioClient({
     } catch (e) { console.error(e); }
   }
 
+  async function handleSaveDayTitle(date: string) {
+    try {
+      await fetch(`/api/trips/${tripId}/day-title`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, title: dayTitleText }),
+      });
+      setDayTitles((prev) => ({
+        ...prev,
+        [date]: dayTitleText,
+      }));
+      setEditingDayTitle(null);
+      setDayTitleText("");
+    } catch (e) {
+      console.error("Error saving day title:", e);
+    }
+  }
+
   // ── Drag & drop ────────────────────────────────────────────────────────────
 
   const handleDragEnd = useCallback(
@@ -346,21 +392,53 @@ export default function TripItinerarioClient({
 
                 {/* Day label */}
                 <div className="flex-1">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <span className="text-xs font-medium bg-accent text-white px-2.5 py-0.5 rounded-xl">
-                      Día {index + 1}
-                    </span>
-                    {loc && (
-                      <p className="text-sm font-medium text-c-muted">
-                        {loc.city}{loc.country ? `, ${loc.country}` : ""}
-                      </p>
-                    )}
-                    {dayItems.length > 0 && (
-                      <span className="text-[11px] text-c-subtle">
-                        {dayItems.length} {dayItems.length === 1 ? "actividad" : "actividades"}
-                      </span>
-                    )}
-                  </div>
+                  {editingDayTitle === fecha ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={dayTitleText}
+                        onChange={(e) => setDayTitleText(e.target.value)}
+                        placeholder={`Día ${index + 1}`}
+                        className="text-xs font-medium px-2.5 py-0.5 rounded-xl bg-white/20 border border-white/30 text-c-text focus:outline-none focus:border-accent"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => handleSaveDayTitle(fecha)}
+                        className="text-xs px-2 py-1 rounded-xl bg-accent/80 text-white hover:bg-accent transition-colors"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        onClick={() => setEditingDayTitle(null)}
+                        className="text-xs px-2 py-1 rounded-xl bg-white/20 text-c-text hover:bg-white/30 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <button
+                        onClick={() => {
+                          setEditingDayTitle(fecha);
+                          setDayTitleText(dayTitles[fecha] || `Día ${index + 1}`);
+                        }}
+                        className="text-xs font-medium bg-accent text-white px-2.5 py-0.5 rounded-xl hover:bg-terra-500 transition-colors flex items-center gap-1.5 group"
+                      >
+                        {dayTitles[fecha] || `Día ${index + 1}`}
+                        <PencilIcon />
+                      </button>
+                      {loc && (
+                        <p className="text-sm font-medium text-c-muted">
+                          {loc.city}{loc.country ? `, ${loc.country}` : ""}
+                        </p>
+                      )}
+                      {dayItems.length > 0 && (
+                        <span className="text-[11px] text-c-subtle">
+                          {dayItems.length} {dayItems.length === 1 ? "actividad" : "actividades"}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}

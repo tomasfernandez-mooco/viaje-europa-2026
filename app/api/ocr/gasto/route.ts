@@ -1,76 +1,85 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import Anthropic from "@anthropic-ai/sdk";
 
 export const dynamic = "force-dynamic";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new Anthropic();
 
-const PROMPT = `You are a travel expense OCR assistant. Extract expense data from this receipt/ticket image.
+export async function POST(req: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-Return ONLY valid JSON with these exact fields (use null for missing fields):
-{
-  "title": "string — merchant name or short description",
-  "amount": number or null,
-  "currency": "EUR|USD|ARS or null",
-  "date": "YYYY-MM-DD or null",
-  "category": "comida|transporte|alojamiento|entretenimiento|compras|salud|otros"
-}
-
-Rules:
-- title: merchant name (e.g. "McDonald's", "Taxi Roma", "Farmacia")
-- amount: total amount paid (bottom of receipt), as a number
-- currency: € → EUR, $ → USD, if unclear → null
-- date: extract from receipt, convert to YYYY-MM-DD
-- category: classify based on merchant type
-- Return ONLY the JSON object, no explanation`;
-
-export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
+    const formData = await req.formData();
     const file = formData.get("file") as File | null;
 
-    // Also accept base64 JSON body (used by Telegram bot)
-    let base64: string;
-    let mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" = "image/jpeg";
-
-    if (file) {
-      const bytes = await file.arrayBuffer();
-      base64 = Buffer.from(bytes).toString("base64");
-      if (file.type === "image/png") mediaType = "image/png";
-      else if (file.type === "image/webp") mediaType = "image/webp";
-    } else {
-      const body = await request.json().catch(() => null);
-      if (!body?.base64) {
-        return NextResponse.json({ error: "No file or base64 provided" }, { status: 400 });
-      }
-      base64 = body.base64;
-      if (body.mediaType) mediaType = body.mediaType;
+    if (!file) {
+      return NextResponse.json({ error: "No se recibió archivo" }, { status: 400 });
     }
 
+    // Convert file to base64
+    const buffer = await file.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString("base64");
+
+    // Determine media type
+    let mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp" | "application/pdf" = "image/jpeg";
+    if (file.type.includes("png")) mediaType = "image/png";
+    else if (file.type.includes("gif")) mediaType = "image/gif";
+    else if (file.type.includes("webp")) mediaType = "image/webp";
+    else if (file.type.includes("pdf")) mediaType = "application/pdf";
+
+    // Call Claude Vision API
     const response = await client.messages.create({
-      model: "claude-opus-4-5",
-      max_tokens: 512,
+      model: "claude-opus-4-5-20250805",
+      max_tokens: 1024,
       messages: [
         {
           role: "user",
           content: [
-            { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-            { type: "text", text: PROMPT },
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mediaType,
+                data: base64,
+              },
+            },
+            {
+              type: "text",
+              text: `Analiza esta imagen de un recibo/factura y extrae la siguiente información en formato JSON:
+{
+  "amount": <monto numérico o null>,
+  "currency": <código de moneda (EUR, USD, etc.) o "EUR">,
+  "date": <fecha en formato YYYY-MM-DD o null>,
+  "category": <categoría: "alojamiento", "comida", "transporte", "actividad", "compras", "salud" u "otros">,
+  "merchant": <nombre del comercio o null>,
+  "description": <descripción breve o null>
+}
+
+Responde SOLO con el JSON.`,
+            },
           ],
         },
       ],
     });
 
-    const text = response.content[0].type === "text" ? response.content[0].text : "";
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return NextResponse.json({ error: "Could not extract JSON", raw: text }, { status: 422 });
+    const content = response.content[0];
+    if (content.type !== "text") {
+      return NextResponse.json({ error: "Unexpected response format" }, { status: 500 });
     }
 
-    const extracted = JSON.parse(jsonMatch[0]);
-    return NextResponse.json(extracted);
+    let extractedData;
+    try {
+      extractedData = JSON.parse(content.text);
+    } catch {
+      console.error("Failed to parse OCR response:", content.text);
+      extractedData = { error: "No se pudo extraer datos estructurados" };
+    }
+
+    return NextResponse.json(extractedData);
   } catch (error) {
-    console.error("OCR gasto error:", error);
-    return NextResponse.json({ error: "Failed to process file" }, { status: 500 });
+    console.error("[ocr-gasto-error]", error);
+    return NextResponse.json({ error: "Error procesando OCR de gasto" }, { status: 500 });
   }
 }

@@ -93,29 +93,20 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
     const amountUSD = toUSD(Number(form.amount), form.currency);
     
     let res;
-    
-    if (receiptUrl) {
-      // Send with receipt using multipart
-      const formData = new FormData();
-      formData.append("category", form.category);
-      formData.append("amount", form.amount);
-      formData.append("currency", form.currency);
-      formData.append("description", form.description);
-      formData.append("date", form.date);
-      formData.append("amountUSD", String(amountUSD));
-      
-      res = await fetch(`/api/trips/${tripId}/expenses`, {
-        method: "POST",
-        body: formData,
-      });
-    } else {
-      // Send JSON only
-      res = await fetch(`/api/trips/${tripId}/expenses`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, amount: Number(form.amount), amountUSD }),
-      });
-    }
+
+    // Always send as JSON with receiptUrl if available
+    const expenseData = {
+      ...form,
+      amount: Number(form.amount),
+      amountUSD,
+      receiptUrl: receiptUrl || undefined,
+    };
+
+    res = await fetch(`/api/trips/${tripId}/expenses`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(expenseData),
+    });
     
     const created = await res.json();
     setExpenses(prev => [created, ...prev]);
