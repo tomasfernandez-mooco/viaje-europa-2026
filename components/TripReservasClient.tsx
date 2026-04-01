@@ -1,0 +1,650 @@
+"use client";
+import { useState, useMemo } from "react";
+import { Reservation, TripMember, RESERVATION_TYPES, ESTADOS, CATEGORIA_LABELS, MONEDAS, MONEDA_SYMBOLS, PROVIDER_SUGGESTIONS, formatMoney, formatDateShort, toUSD } from "@/lib/types";
+import { EstadoBadge, PrioridadBadge } from "./StatusBadge";
+
+type Props = {
+  tripId: string;
+  reservations: Reservation[];
+  config: Record<string, string>;
+  members: TripMember[];
+};
+
+export default function TripReservasClient({ tripId, reservations: initial, config, members }: Props) {
+  const [reservations, setReservations] = useState(initial);
+  const [filtroType, setFiltroType] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Reservation | null>(null);
+  const [sortKey, setSortKey] = useState<"startDate" | "title" | "city" | "priceUSD" | "status">("startDate");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [vista, setVista] = useState<"reservas" | "viajeros">("reservas");
+
+  function handleSort(key: typeof sortKey) {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  }
+
+  const tcEurUsd = Number(config.tcEurUsd ?? 1.08);
+  const tcArsMep = Number(config.tcArsMep ?? 1200);
+
+  const filtered = useMemo(() => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    return reservations
+      .filter((r) => !filtroType || r.type === filtroType)
+      .filter((r) => !filtroStatus || r.status === filtroStatus)
+      .filter((r) => !busqueda || r.title.toLowerCase().includes(busqueda.toLowerCase()))
+      .sort((a, b) => {
+        const av = a[sortKey] ?? "";
+        const bv = b[sortKey] ?? "";
+        if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+        return String(av).localeCompare(String(bv)) * dir;
+      });
+  }, [reservations, filtroType, filtroStatus, busqueda, sortKey, sortDir]);
+
+  const totalUSD = filtered.reduce((s, r) => s + r.priceUSD, 0);
+
+  async function handleSave(data: Partial<Reservation>) {
+    if (editing) {
+      const updated = { ...editing, ...data };
+      const prev = reservations;
+      setReservations((r) => r.map((x) => (x.id === editing.id ? updated : x)));
+      setModalOpen(false);
+      setEditing(null);
+      const res = await fetch(`/api/trips/${tripId}/reservations/${editing.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...editing, ...data }),
+      });
+      if (!res.ok) setReservations(prev);
+      else {
+        const saved = await res.json();
+        setReservations((r) => r.map((x) => (x.id === editing.id ? saved : x)));
+      }
+    } else {
+      const tempId = `temp-${Date.now()}`;
+      const optimistic: Reservation = { id: tempId, tripId, createdAt: new Date().toISOString(), ...data } as Reservation;
+      setReservations((r) => [...r, optimistic]);
+      setModalOpen(false);
+      setEditing(null);
+      const res = await fetch(`/api/trips/${tripId}/reservations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, tripId }),
+      });
+      if (!res.ok) setReservations((r) => r.filter((x) => x.id !== tempId));
+      else {
+        const created = await res.json();
+        setReservations((r) => r.map((x) => (x.id === tempId ? created : x)));
+      }
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Eliminar esta reserva?")) return;
+    const prev = reservations;
+    setReservations((r) => r.filter((x) => x.id !== id));
+    const res = await fetch(`/api/trips/${tripId}/reservations/${id}`, { method: "DELETE" });
+    if (!res.ok) setReservations(prev);
+  }
+
+  async function toggleStatus(r: Reservation) {
+    const order = ["por-reservar", "pendiente", "confirmado", "cancelado"];
+    const next = order[(order.indexOf(r.status) + 1) % order.length];
+    const prev = reservations;
+    setReservations((all) => all.map((x) => (x.id === r.id ? { ...x, status: next as Reservation["status"] } : x)));
+    const res = await fetch(`/api/trips/${tripId}/reservations/${r.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...r, status: next }),
+    });
+    if (!res.ok) setReservations(prev);
+  }
+
+  const inputClass = "glass-input !py-1.5 !px-3 text-sm";
+
+  function parseTravelerIds(r: Reservation): string[] {
+    try { return JSON.parse(r.travelerIds ?? "[]"); } catch { return []; }
+  }
+
+  function costPerTraveler(r: Reservation, totalMembers?: number): number {
+    const ids = parseTravelerIds(r);
+    const count = ids.length || totalMembers || r.travelers || 1;
+    return r.priceUSD / count;
+  }
+
+  const MEMBER_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"];
+
+  function memberColor(userId: string): string {
+    const idx = members.findIndex((m) => m.userId === userId);
+    return MEMBER_COLORS[idx % MEMBER_COLORS.length] ?? "#6366f1";
+  }
+
+  function memberName(userId: string): string {
+    return members.find((m) => m.userId === userId)?.user.name ?? userId.slice(0, 6);
+  }
+
+  return (
+    <div className="p-4 md:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div>
+          <h1 className="text-2xl font-display font-semibold tracking-tight text-c-heading">Reservas</h1>
+          <p className="text-sm text-c-muted mt-0.5">{filtered.length} reservas &middot; ${totalUSD.toLocaleString()} USD</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-xl overflow-hidden border border-white/10 text-xs">
+            <button
+              onClick={() => setVista("reservas")}
+              className={`px-3 py-1.5 transition-colors ${vista === "reservas" ? "bg-accent text-white" : "text-c-muted hover:text-c-text"}`}
+            >
+              Por reserva
+            </button>
+            <button
+              onClick={() => setVista("viajeros")}
+              className={`px-3 py-1.5 transition-colors ${vista === "viajeros" ? "bg-accent text-white" : "text-c-muted hover:text-c-text"}`}
+            >
+              Por viajero
+            </button>
+          </div>
+          <button
+            onClick={() => { setEditing(null); setModalOpen(true); }}
+            className="px-5 py-2.5 text-sm bg-accent text-white rounded-2xl hover:bg-terra-500 font-medium shadow-glass-sm hover:shadow-glass transition-all"
+          >
+            Agregar
+          </button>
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <div className="glass-card rounded-2xl p-3 flex flex-wrap gap-2 mb-5">
+        <input type="text" placeholder="Buscar..." value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)} className={inputClass} />
+        <select value={filtroType} onChange={(e) => setFiltroType(e.target.value)} className={inputClass}>
+          <option value="">Tipo</option>
+          {RESERVATION_TYPES.map((t) => <option key={t} value={t}>{CATEGORIA_LABELS[t]}</option>)}
+        </select>
+        <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className={inputClass}>
+          <option value="">Estado</option>
+          {ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}
+        </select>
+      </div>
+
+      {vista === "reservas" && (
+        <>
+          {filtered.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <svg className="w-12 h-12 text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+              </svg>
+              <p className="text-c-muted text-sm font-medium">
+                {busqueda || filtroType || filtroStatus ? "No hay reservas con ese filtro" : "No hay reservas todavía"}
+              </p>
+              {!busqueda && !filtroType && !filtroStatus && (
+                <button
+                  onClick={() => { setEditing(null); setModalOpen(true); }}
+                  className="mt-4 px-4 py-2 text-sm bg-accent text-white rounded-xl font-medium hover:bg-terra-500 transition-all"
+                >
+                  Agregar primera reserva
+                </button>
+              )}
+            </div>
+          )}
+          {/* Desktop table */}
+          <div className="hidden md:block glass-card rounded-2xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-white/30 border-b border-white/20">
+                <tr>
+                  {(
+                    [
+                      { key: "title",     label: "Reserva", align: "left"  },
+                      { key: "city",      label: "Ciudad",  align: "left"  },
+                      { key: "startDate", label: "Fechas",  align: "left"  },
+                    ] as { key: typeof sortKey; label: string; align: string }[]
+                  ).map(({ key, label, align }) => {
+                    const active = sortKey === key;
+                    return (
+                      <th key={key} className={`px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider text-${align}`}>
+                        <button onClick={() => handleSort(key)} className={`flex items-center gap-1 hover:text-c-text transition-colors ${active ? "text-c-text" : ""}`}>
+                          {label}
+                          <span className="text-[9px]">{active ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
+                        </button>
+                      </th>
+                    );
+                  })}
+                  <th className="text-right px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Costo</th>
+                  <th className="text-right px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">
+                    <button onClick={() => handleSort("priceUSD")} className={`flex items-center gap-1 ml-auto hover:text-c-text transition-colors ${sortKey === "priceUSD" ? "text-c-text" : ""}`}>
+                      USD
+                      <span className="text-[9px]">{sortKey === "priceUSD" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
+                    </button>
+                  </th>
+                  <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">
+                    <button onClick={() => handleSort("status")} className={`flex items-center gap-1 hover:text-c-text transition-colors ${sortKey === "status" ? "text-c-text" : ""}`}>
+                      Estado
+                      <span className="text-[9px]">{sortKey === "status" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Viajeros</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {filtered.map((r) => (
+                  <tr key={r.id} className="hover:bg-white/[0.04] dark:hover:bg-white/[0.06] transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        {r.attachmentUrl && /\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(r.attachmentUrl) && (
+                          <img src={r.attachmentUrl} alt="" className="w-9 h-9 rounded-lg object-cover border border-white/20 shrink-0" />
+                        )}
+                        <div>
+                          <p className="font-medium text-c-heading">{r.title}</p>
+                          {r.alert && <p className="text-xs text-amber-600 mt-0.5 line-clamp-1">{r.alert}</p>}
+                          {r.provider && <p className="text-xs text-c-muted">{r.provider}</p>}
+                          {r.attachmentUrl && !/\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(r.attachmentUrl) && (
+                            <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline">
+                              Adjunto
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-c-muted">{r.city}</td>
+                    <td className="px-4 py-3 text-c-muted whitespace-nowrap text-xs">
+                      {formatDateShort(r.startDate)}
+                      {r.endDate && r.endDate !== r.startDate && ` — ${formatDateShort(r.endDate)}`}
+                    </td>
+                    <td className="px-4 py-3 text-right text-c-muted">{formatMoney(r.price, r.currency)}</td>
+                    <td className="px-4 py-3 text-right font-medium text-c-heading">${r.priceUSD.toLocaleString()}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => toggleStatus(r)}><EstadoBadge estado={r.status} /></button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1 flex-wrap">
+                        {parseTravelerIds(r).length > 0
+                          ? parseTravelerIds(r).map((uid) => (
+                              <span
+                                key={uid}
+                                title={memberName(uid)}
+                                className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-semibold text-white"
+                                style={{ backgroundColor: memberColor(uid) }}
+                              >
+                                {memberName(uid).charAt(0).toUpperCase()}
+                              </span>
+                            ))
+                          : <span className="text-xs text-c-subtle">{r.travelers}</span>
+                        }
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        {r.reservationUrl && (
+                          <a href={r.reservationUrl} target="_blank" rel="noopener noreferrer"
+                            className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/[0.06] transition-colors">
+                            Reservar
+                          </a>
+                        )}
+                        <button onClick={() => { setEditing(r); setModalOpen(true); }}
+                          className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/[0.06] transition-colors">
+                          Editar
+                        </button>
+                        <button onClick={() => handleDelete(r.id)}
+                          className="text-xs text-c-subtle hover:text-red-500 px-2 py-1 rounded-xl hover:bg-red-50/50 transition-colors">
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {filtered.map((r) => (
+              <div key={r.id} className="glass-card rounded-2xl p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-c-heading text-sm">{r.title}</p>
+                    <p className="text-xs text-c-muted mt-0.5">{r.city} &middot; {formatDateShort(r.startDate)}</p>
+                  </div>
+                  <div className="text-right ml-3">
+                    <p className="text-xs text-c-muted">{formatMoney(r.price, r.currency)}</p>
+                    <p className="text-sm font-medium text-c-heading">${r.priceUSD.toLocaleString()}</p>
+                  </div>
+                </div>
+                {r.alert && <p className="text-xs text-amber-600 mb-2">{r.alert}</p>}
+                <div className="flex items-center justify-between">
+                  <button onClick={() => toggleStatus(r)}><EstadoBadge estado={r.status} /></button>
+                  <div className="flex gap-2">
+                    {r.reservationUrl && (
+                      <a href={r.reservationUrl} target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-c-muted hover:text-accent transition-colors">Reservar</a>
+                    )}
+                    <button onClick={() => { setEditing(r); setModalOpen(true); }}
+                      className="text-xs text-c-muted hover:text-accent transition-colors">Editar</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {vista === "viajeros" && (
+        <div className="space-y-4">
+          {members.length === 0 && (
+            <p className="text-sm text-c-muted text-center py-8">No hay viajeros en este viaje.</p>
+          )}
+          {members.map((member) => {
+            const myReservations = reservations.filter((r) => {
+              const ids = parseTravelerIds(r);
+              return ids.length === 0 || ids.includes(member.userId);
+            });
+            const total = myReservations.reduce((s, r) => s + costPerTraveler(r, members.length), 0);
+            return (
+              <div key={member.userId} className="glass-card rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 flex items-center justify-between border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm"
+                      style={{ backgroundColor: memberColor(member.userId) }}
+                    >
+                      {member.user.name.charAt(0).toUpperCase()}
+                    </span>
+                    <div>
+                      <p className="font-medium text-c-heading text-sm">{member.user.name}</p>
+                      <p className="text-xs text-c-muted capitalize">{member.role}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-c-muted">Total</p>
+                    <p className="font-semibold text-c-heading">${Math.round(total).toLocaleString()} USD</p>
+                  </div>
+                </div>
+                <div className="divide-y divide-white/[0.06]">
+                  {myReservations.length === 0 && (
+                    <p className="text-xs text-c-muted px-5 py-3">Sin reservas asignadas.</p>
+                  )}
+                  {myReservations.map((r) => (
+                    <div key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-c-muted text-xs shrink-0">{formatDateShort(r.startDate)}</span>
+                        <span className="text-c-heading truncate">{r.title}</span>
+                        <span className="text-c-subtle text-xs shrink-0">{r.city}</span>
+                      </div>
+                      <div className="text-right ml-4 shrink-0">
+                        <p className="font-medium text-c-heading">${Math.round(costPerTraveler(r, members.length)).toLocaleString()}</p>
+                        {parseTravelerIds(r).length > 1 && (
+                          <p className="text-[10px] text-c-muted">${r.priceUSD.toLocaleString()} ÷ {parseTravelerIds(r).length}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {modalOpen && (
+        <ReservationModal
+          reservation={editing}
+          tcEurUsd={tcEurUsd}
+          tcArsMep={tcArsMep}
+          members={members}
+          onSave={handleSave}
+          onClose={() => { setModalOpen(false); setEditing(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ReservationModal({
+  reservation,
+  tcEurUsd,
+  tcArsMep,
+  members,
+  onSave,
+  onClose,
+}: {
+  reservation: Reservation | null;
+  tcEurUsd: number;
+  tcArsMep: number;
+  members: TripMember[];
+  onSave: (data: Partial<Reservation>) => void;
+  onClose: () => void;
+}) {
+  const allMemberIds = members.map((m) => m.userId);
+
+  const empty: Partial<Reservation> = {
+    type: "alojamiento", title: "", city: "", country: "Italia",
+    startDate: "2026-07-", status: "por-reservar", priority: "media",
+    currency: "EUR", price: 0, priceUSD: 0, travelers: members.length || 2,
+    freeCancellation: false, paid: false,
+    travelerIds: JSON.stringify(allMemberIds),
+  };
+  const [form, setForm] = useState<Partial<Reservation>>(reservation ?? empty);
+  const inputClass = "glass-input";
+  const labelClass = "block text-xs font-medium text-c-muted mb-1";
+
+  // Parse travelerIds for checkboxes
+  const selectedIds: string[] = (() => {
+    try { return JSON.parse(form.travelerIds ?? "null") ?? allMemberIds; } catch { return allMemberIds; }
+  })();
+
+  function toggleMember(userId: string) {
+    const next = selectedIds.includes(userId)
+      ? selectedIds.filter((id) => id !== userId)
+      : [...selectedIds, userId];
+    setForm((f) => ({ ...f, travelerIds: JSON.stringify(next), travelers: next.length }));
+  }
+
+  function update(field: string, value: string | number | boolean) {
+    const next = { ...form, [field]: value };
+    if (field === "currency" || field === "price") {
+      const cur = field === "currency" ? (value as string) : next.currency ?? "EUR";
+      const amt = field === "price" ? (value as number) : next.price ?? 0;
+      next.priceUSD = Math.round(toUSD(amt, cur, tcEurUsd, tcArsMep));
+    }
+    setForm(next);
+  }
+
+  // Provider suggestion
+  const suggestion = PROVIDER_SUGGESTIONS[form.type === "alojamiento" ? (form.subtype ?? "hotel") : (form.type ?? "")];
+
+  return (
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade">
+      <div className="glass-card-solid rounded-2xl shadow-glass-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="px-6 py-4 border-b border-white/15 flex justify-between items-center">
+          <h2 className="text-lg font-display font-semibold text-c-heading">{reservation ? "Editar reserva" : "Nueva reserva"}</h2>
+          <button onClick={onClose} className="text-c-muted hover:text-c-muted w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/[0.06] transition-colors">&times;</button>
+        </div>
+
+        <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="p-6 space-y-4">
+          <div>
+            <label className={labelClass}>Titulo</label>
+            <input required value={form.title ?? ""} onChange={(e) => update("title", e.target.value)} className={inputClass} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Tipo</label>
+              <select value={form.type ?? "alojamiento"} onChange={(e) => update("type", e.target.value)} className={inputClass}>
+                {RESERVATION_TYPES.map((t) => <option key={t} value={t}>{CATEGORIA_LABELS[t]}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Estado</label>
+              <select value={form.status ?? "por-reservar"} onChange={(e) => update("status", e.target.value)} className={inputClass}>
+                {ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {form.type === "alojamiento" && (
+            <div>
+              <label className={labelClass}>Subtipo</label>
+              <select value={form.subtype ?? "hotel"} onChange={(e) => update("subtype", e.target.value)} className={inputClass}>
+                <option value="hotel">Hotel</option>
+                <option value="departamento">Departamento</option>
+              </select>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Ciudad</label>
+              <input required value={form.city ?? ""} onChange={(e) => update("city", e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Pais</label>
+              <input value={form.country ?? ""} onChange={(e) => update("country", e.target.value)} className={inputClass} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Fecha inicio</label>
+              <input required type="date" value={form.startDate ?? ""} onChange={(e) => update("startDate", e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Fecha fin</label>
+              <input type="date" value={form.endDate ?? ""} onChange={(e) => update("endDate", e.target.value)} className={inputClass} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className={labelClass}>Moneda</label>
+              <select value={form.currency ?? "EUR"} onChange={(e) => update("currency", e.target.value)} className={inputClass}>
+                {MONEDAS.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Precio ({form.currency ?? "EUR"})</label>
+              <input required type="number" min="0" step="0.01" value={form.price ?? 0}
+                onChange={(e) => update("price", parseFloat(e.target.value) || 0)} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Equivalente USD (calculado)</label>
+              <div className="glass-input !py-2 flex items-center gap-2 !bg-accent/8 border-accent/20">
+                <span className="text-xs text-c-muted">$</span>
+                <span className="text-sm font-semibold text-accent">{(form.priceUSD ?? 0).toLocaleString()}</span>
+                <span className="text-xs text-c-muted ml-auto">USD</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Proveedor</label>
+              <input value={form.provider ?? ""} onChange={(e) => update("provider", e.target.value)}
+                placeholder={suggestion?.label ?? "Proveedor..."} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>URL reserva</label>
+              <input value={form.reservationUrl ?? ""} onChange={(e) => update("reservationUrl", e.target.value)}
+                placeholder={suggestion?.url ?? "https://..."} className={inputClass} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Confirmacion #</label>
+              <input value={form.confirmationNumber ?? ""} onChange={(e) => update("confirmationNumber", e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Fecha limite</label>
+              <input type="date" value={form.deadlineDate ?? ""} onChange={(e) => update("deadlineDate", e.target.value)} className={inputClass} />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Notas</label>
+            <textarea value={form.notes ?? ""} onChange={(e) => update("notes", e.target.value)} rows={2} className={`${inputClass} resize-none`} />
+          </div>
+
+          <div>
+            <label className={labelClass}>Adjunto (URL de imagen o documento)</label>
+            <input value={form.attachmentUrl ?? ""} onChange={(e) => update("attachmentUrl", e.target.value)}
+              placeholder="https://..." className={inputClass} />
+            {form.attachmentUrl && /\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(form.attachmentUrl) && (
+              <img src={form.attachmentUrl} alt="Adjunto" className="mt-2 h-24 w-auto rounded-xl object-cover border border-white/20" />
+            )}
+          </div>
+
+          <div>
+            <label className={`${labelClass} text-amber-600`}>Alerta</label>
+            <textarea value={form.alert ?? ""} onChange={(e) => update("alert", e.target.value)}
+              rows={2} placeholder="Accion requerida..." className={`${inputClass} !border-amber-200/50 !bg-amber-50/30 resize-none`} />
+          </div>
+
+          {members.length > 0 && (
+            <div>
+              <label className={labelClass}>
+                Viajeros incluidos
+                {(form.priceUSD ?? 0) > 0 && selectedIds.length > 0 && (
+                  <span className="ml-2 text-accent font-medium">
+                    ${Math.round((form.priceUSD ?? 0) / selectedIds.length).toLocaleString()} USD / persona
+                  </span>
+                )}
+              </label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {members.map((m) => {
+                  const selected = selectedIds.includes(m.userId);
+                  return (
+                    <button
+                      key={m.userId}
+                      type="button"
+                      onClick={() => toggleMember(m.userId)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                        selected
+                          ? "bg-accent/20 border-accent/40 text-accent"
+                          : "bg-white/[0.04] border-white/10 text-c-muted hover:border-white/20"
+                      }`}
+                    >
+                      {m.user.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-5">
+            <label className="flex items-center gap-2 text-sm text-c-muted cursor-pointer">
+              <input type="checkbox" checked={form.freeCancellation ?? false}
+                onChange={(e) => update("freeCancellation", e.target.checked)} className="accent-accent rounded" />
+              Cancelacion gratuita
+            </label>
+            <label className="flex items-center gap-2 text-sm text-c-muted cursor-pointer">
+              <input type="checkbox" checked={form.paid ?? false}
+                onChange={(e) => update("paid", e.target.checked)} className="accent-accent rounded" />
+              Pagado
+            </label>
+          </div>
+
+          {suggestion && !form.reservationUrl && (
+            <div className="flex items-center gap-2 p-3 glass-card rounded-2xl border-accent/20">
+              <span className="text-xs text-c-muted">Sugerencia:</span>
+              <a href={suggestion.url} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline font-medium">
+                {suggestion.label}
+              </a>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2.5 text-sm text-c-muted hover:text-c-text rounded-2xl hover:bg-white/[0.06] transition-colors">Cancelar</button>
+            <button type="submit" className="px-6 py-2.5 text-sm bg-accent text-white rounded-2xl hover:bg-terra-500 font-medium shadow-glass-sm hover:shadow-glass transition-all">
+              {reservation ? "Guardar" : "Agregar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
