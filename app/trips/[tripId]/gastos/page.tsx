@@ -5,6 +5,10 @@ import { Expense } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 export default async function TripGastosPage({ params }: { params: { tripId: string } }) {
+  if (!prisma) {
+    throw new Error("Error de conexión a la base de datos. Por favor recargá la página.");
+  }
+
   const [expenses, configRows] = await Promise.all([
     prisma.expense.findMany({ where: { tripId: params.tripId }, orderBy: { date: "desc" } }),
     prisma.tripConfig.findMany({ where: { tripId: params.tripId } }),
