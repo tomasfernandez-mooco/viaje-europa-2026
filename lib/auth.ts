@@ -34,6 +34,11 @@ export async function verifyToken(token: string) {
 }
 
 export async function getCurrentUser() {
+  if (!prisma) {
+    console.error("[auth] Prisma client is undefined - cannot fetch user");
+    throw new Error("Database connection failed");
+  }
+
   const cookieStore = cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
