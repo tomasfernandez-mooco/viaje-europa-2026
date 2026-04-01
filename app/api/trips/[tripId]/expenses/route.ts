@@ -7,12 +7,18 @@ import { v4 as uuidv4 } from "uuid";
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ tripId: string }> }) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  const { tripId } = await params;
-  if (!await canAccessTrip(tripId, user.id, user.role)) return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
-  const expenses = await prisma.expense.findMany({ where: { tripId }, orderBy: { date: "desc" } });
-  return NextResponse.json(expenses);
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    const { tripId } = await params;
+    if (!await canAccessTrip(tripId, user.id, user.role)) return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
+    if (!prisma) return NextResponse.json({ error: "DB no disponible" }, { status: 503 });
+    const expenses = await prisma.expense.findMany({ where: { tripId }, orderBy: { date: "desc" } });
+    return NextResponse.json(expenses);
+  } catch (error) {
+    console.error("[expenses-get]", error);
+    return NextResponse.json({ error: "Error obteniendo gastos", detail: error instanceof Error ? error.message : String(error) }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ tripId: string }> }) {
