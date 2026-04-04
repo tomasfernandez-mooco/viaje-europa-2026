@@ -26,6 +26,7 @@ model Trip {
   locations      Location[]
   expenses       Expense[]
   config         TripConfig[]
+  travelers      Traveler[]
 
   @@map("trips")
 }
@@ -174,13 +175,32 @@ model Expense {
   amountUSD   Float    @default(0)
   description String?
   date        String
-  receiptUrl  String?
-  receiptDate DateTime?
-  createdAt   DateTime @default(now())
+  receiptUrl        String?
+  receiptDate       DateTime?
+  paidByTravelerId  String?
+  splitBetween      String?
+  splitType         String    @default("equal")
+  createdAt         DateTime  @default(now())
 
-  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  trip   Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  paidBy Traveler? @relation("ExpensePaidBy", fields: [paidByTravelerId], references: [id], onDelete: SetNull)
 
   @@map("expenses")
+}
+
+// ─── TRAVELER ───────────────────────────────────────────
+model Traveler {
+  id        String   @id @default(uuid())
+  tripId    String
+  name      String
+  color     String   @default("#6366f1")
+  userId    String?
+  createdAt DateTime @default(now())
+
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  expenses Expense[] @relation("ExpensePaidBy")
+
+  @@map("travelers")
 }
 
 // ─── TELEGRAM SESSION ───────────────────────────────────
