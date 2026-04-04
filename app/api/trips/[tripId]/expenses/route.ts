@@ -88,6 +88,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tri
         date: expenseData.date,
         receiptUrl: receiptUrl,
         receiptDate: receiptUrl ? new Date() : undefined,
+        paidByTravelerId: expenseData.paidByTravelerId ?? null,
+        splitBetween: expenseData.splitBetween
+          ? JSON.stringify(expenseData.splitBetween)
+          : null,
+        splitType: expenseData.splitType ?? "equal",
       },
     });
 

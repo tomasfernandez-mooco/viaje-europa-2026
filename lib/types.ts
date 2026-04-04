@@ -103,6 +103,19 @@ export type Expense = {
   date: string;
   receiptUrl?: string | null;
   receiptDate?: string | null;
+  paidByTravelerId?: string | null;
+  splitBetween?: string | null; // JSON array of traveler IDs
+  splitType?: string | null;    // "equal" | "custom"
+  createdAt: string;
+};
+
+// ─── TRAVELER ────────────────────────────────────────────
+export type Traveler = {
+  id: string;
+  tripId: string;
+  name: string;
+  color: string;
+  userId?: string | null;
   createdAt: string;
 };
 

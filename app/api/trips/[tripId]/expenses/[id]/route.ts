@@ -11,7 +11,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trip
   const body = await req.json();
   const expense = await prisma.expense.update({
     where: { id },
-    data: { category: body.category, amount: Number(body.amount), currency: body.currency, amountUSD: Number(body.amountUSD ?? body.amount), description: body.description ?? null, date: body.date },
+    data: {
+      category: body.category,
+      amount: Number(body.amount),
+      currency: body.currency,
+      amountUSD: Number(body.amountUSD ?? body.amount),
+      description: body.description ?? null,
+      date: body.date,
+      paidByTravelerId: body.paidByTravelerId ?? null,
+      splitBetween: body.splitBetween ? JSON.stringify(body.splitBetween) : null,
+      splitType: body.splitType ?? "equal",
+    },
   });
   return NextResponse.json(expense);
 }
