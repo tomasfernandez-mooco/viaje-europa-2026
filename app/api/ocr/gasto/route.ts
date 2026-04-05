@@ -1,37 +1,88 @@
+import { Anthropic } from "@anthropic-ai/sdk";
+import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import Anthropic from "@anthropic-ai/sdk";
 
 export const dynamic = "force-dynamic";
 
-const client = new Anthropic();
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
-export async function POST(req: NextRequest) {
+interface OCRResult {
+  amount: number;
+  date: string;
+  category: string;
+  currency: string;
+  description: string;
+  receiptUrl: string;
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json(
+      { error: "ANTHROPIC_API_KEY no configurada" },
+      { status: 500 }
+    );
+  }
+
+  const form = await request.formData();
+  const file = form.get("file") as File | null;
+
+  if (!file) {
+    return NextResponse.json({ error: "No se recibió archivo" }, { status: 400 });
+  }
+
+  // Validate type and size
+  const acceptedMimeTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "application/pdf",
+  ];
+  if (!acceptedMimeTypes.includes(file.type)) {
+    return NextResponse.json(
+      { error: "Tipo de archivo no válido (JPG, PNG, WEBP, PDF)" },
+      { status: 400 }
+    );
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    return NextResponse.json(
+      { error: "El archivo supera el límite de 5MB" },
+      { status: 400 }
+    );
+  }
 
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
+    // Upload to Vercel Blob first
+    const blob = await put(
+      `trips/${user.id}-gasto-${Date.now()}-${file.name}`,
+      file,
+      { access: "public" }
+    );
 
-    if (!file) {
-      return NextResponse.json({ error: "No se recibió archivo" }, { status: 400 });
-    }
-
-    // Convert file to base64
+    // Convert file to base64 for Claude Vision
     const buffer = await file.arrayBuffer();
     const base64 = Buffer.from(buffer).toString("base64");
 
     // Determine media type
-    let mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp" | "application/pdf" = "image/jpeg";
-    if (file.type.includes("png")) mediaType = "image/png";
-    else if (file.type.includes("gif")) mediaType = "image/gif";
-    else if (file.type.includes("webp")) mediaType = "image/webp";
-    else if (file.type.includes("pdf")) mediaType = "application/pdf";
+    const mediaType =
+      file.type === "application/pdf"
+        ? "application/pdf"
+        : file.type === "image/jpeg"
+          ? "image/jpeg"
+          : file.type === "image/png"
+            ? "image/png"
+            : "image/webp";
 
-    // Call Claude Vision API
-    const response = await client.messages.create({
-      model: "claude-opus-4-5-20250805",
+    // Call Claude Vision for OCR
+    const message = await anthropic.messages.create({
+      model: "claude-opus-4-5",
       max_tokens: 1024,
       messages: [
         {
@@ -47,39 +98,59 @@ export async function POST(req: NextRequest) {
             },
             {
               type: "text",
-              text: `Analiza esta imagen de un recibo/factura y extrae la siguiente información en formato JSON:
+              text: `Analiza este comprobante/recibo de gasto de viaje y extrae la siguiente información en formato JSON:
+
 {
-  "amount": <monto numérico o null>,
-  "currency": <código de moneda (EUR, USD, etc.) o "EUR">,
-  "date": <fecha en formato YYYY-MM-DD o null>,
-  "category": <categoría: "alojamiento", "comida", "transporte", "actividad", "compras", "salud" u "otros">,
-  "merchant": <nombre del comercio o null>,
-  "description": <descripción breve o null>
+  "amount": número (cantidad del gasto),
+  "date": "YYYY-MM-DD" (fecha del gasto si está disponible, sino hoy),
+  "category": "string" (categoría: comida, alojamiento, transporte, actividad, shopping, otro),
+  "currency": "USD|EUR|ARS" (moneda),
+  "description": "string" (descripción clara del gasto, máx 100 caracteres)
 }
 
-Responde SOLO con el JSON.`,
+Solo responde con el JSON, sin explicaciones adicionales.`,
             },
           ],
         },
       ],
     });
 
-    const content = response.content[0];
-    if (content.type !== "text") {
-      return NextResponse.json({ error: "Unexpected response format" }, { status: 500 });
+    // Parse Claude's response
+    const responseText =
+      message.content[0].type === "text" ? message.content[0].text : "";
+    const ocrData = JSON.parse(responseText);
+
+    // Validate extracted data
+    if (!ocrData.amount || !ocrData.date || !ocrData.category || !ocrData.currency) {
+      return NextResponse.json(
+        { error: "No se pudieron extraer datos suficientes del comprobante" },
+        { status: 400 }
+      );
     }
 
-    let extractedData;
-    try {
-      extractedData = JSON.parse(content.text);
-    } catch {
-      console.error("Failed to parse OCR response:", content.text);
-      extractedData = { error: "No se pudo extraer datos estructurados" };
-    }
+    const result: OCRResult = {
+      amount: parseFloat(ocrData.amount),
+      date: ocrData.date,
+      category: ocrData.category.toLowerCase(),
+      currency: ocrData.currency.toUpperCase(),
+      description: ocrData.description || "Gasto",
+      receiptUrl: blob.url,
+    };
 
-    return NextResponse.json(extractedData);
+    return NextResponse.json(result);
   } catch (error) {
-    console.error("[ocr-gasto-error]", error);
-    return NextResponse.json({ error: "Error procesando OCR de gasto" }, { status: 500 });
+    console.error("OCR error:", error);
+
+    if (error instanceof SyntaxError) {
+      return NextResponse.json(
+        { error: "Error al procesar la respuesta del OCR" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Error al procesar el comprobante" },
+      { status: 500 }
+    );
   }
 }

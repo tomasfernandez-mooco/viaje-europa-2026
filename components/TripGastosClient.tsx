@@ -100,6 +100,7 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
   const [newTravelerColor, setNewTravelerColor] = useState(TRAVELER_COLORS[0]);
   const [savingTraveler, setSavingTraveler] = useState(false);
   const [activeTab, setActiveTab] = useState<"gastos"|"viajeros"|"deudas">("gastos");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     return filterCat === "todas" ? expenses : expenses.filter(e => e.category === filterCat);
@@ -139,17 +140,31 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
   const handleUpload = async () => {
     if (!selectedFile) return;
     try {
-      setUploadStatus("⏳ Subiendo...");
+      setUploadStatus("⏳ Procesando recibo...");
       const formData = new FormData();
       formData.append("file", selectedFile);
-      const response = await fetch("/api/upload", { method: "POST", body: formData });
-      if (!response.ok) throw new Error("Upload failed");
-      const { url } = await response.json();
-      setReceiptUrl(url);
-      setUploadStatus("✅ Recibo subido");
+      const response = await fetch("/api/ocr/gasto", { method: "POST", body: formData });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "OCR failed");
+      }
+      const ocrResult = await response.json();
+
+      // Pre-fill form with extracted data
+      setForm(f => ({
+        ...f,
+        amount: String(ocrResult.amount),
+        category: ocrResult.category,
+        currency: ocrResult.currency,
+        description: ocrResult.description,
+        date: ocrResult.date,
+      }));
+
+      setReceiptUrl(ocrResult.receiptUrl);
+      setUploadStatus("✅ Datos extraídos del recibo");
       setSelectedFile(null);
     } catch (error) {
-      setUploadStatus("❌ Error al subir");
+      setUploadStatus(`❌ ${error instanceof Error ? error.message : "Error al procesar"}`);
       console.error(error);
     }
   };
@@ -611,6 +626,88 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Receipts Gallery */}
+          {expenses.some(e => e.receiptUrl) && (
+            <div className="glass-card rounded-2xl p-4">
+              <p className="text-xs font-semibold text-c-muted uppercase tracking-wider mb-3">
+                📸 Comprobantes ({expenses.filter(e => e.receiptUrl).length})
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {expenses
+                  .filter(e => e.receiptUrl)
+                  .map(exp => (
+                    <div
+                      key={exp.id}
+                      className="group relative bg-black/10 dark:bg-white/5 rounded-xl overflow-hidden cursor-pointer hover:ring-2 ring-accent transition-all"
+                      onClick={() => setPreviewUrl(exp.receiptUrl!)}
+                    >
+                      {exp.receiptUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                        <img
+                          src={exp.receiptUrl}
+                          alt="Receipt thumbnail"
+                          className="w-full h-32 object-cover group-hover:opacity-80 transition-opacity"
+                        />
+                      ) : (
+                        <div className="w-full h-32 flex items-center justify-center text-2xl">
+                          📄
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-xs text-white font-medium truncate">
+                          {CAT_LABELS[exp.category] ?? exp.category}
+                        </p>
+                        <p className="text-[10px] text-white/70">${exp.amountUSD.toFixed(0)}</p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Receipt Preview Modal */}
+          {previewUrl && (
+            <div
+              className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+              onClick={() => setPreviewUrl(null)}
+            >
+              <div
+                className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-auto"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="sticky top-0 flex items-center justify-between p-4 border-b border-c-border bg-white dark:bg-slate-900">
+                  <span className="text-sm font-medium text-c-text">Comprobante</span>
+                  <button
+                    onClick={() => setPreviewUrl(null)}
+                    className="text-c-muted hover:text-c-text transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="p-4 flex flex-col items-center gap-4">
+                  {previewUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                    <img
+                      src={previewUrl}
+                      alt="Receipt"
+                      className="max-w-full max-h-[60vh] rounded-lg border border-c-border"
+                    />
+                  ) : (
+                    <div className="text-center py-10">
+                      <p className="text-2xl mb-2">📄</p>
+                      <a
+                        href={previewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent underline hover:text-terra-500 font-medium"
+                      >
+                        Descargar PDF
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </>
