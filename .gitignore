@@ -40,3 +40,4 @@ next-env.d.ts
 dev.db
 prisma/migrations
 .worktrees/
+.worktrees/
