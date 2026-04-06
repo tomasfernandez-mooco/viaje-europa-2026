@@ -1,6 +1,6 @@
 # Plan Maestro — Europa 2026 App
 **Fecha:** 2026-04-04
-**Estado:** Etapa 1 lista para ejecutar
+**Estado:** Etapa 4 en progreso (OCR vouchers reservas)
 
 > Consolida y reemplaza todos los planes anteriores pendientes. Los archivos de plan individuales se mantienen como referencia de implementación detallada.
 
@@ -25,11 +25,11 @@
 | **1** | Colores calendario + Rediseño dashboard | ❌ | TripCalendarioClient, TripDashboardClient | 🟢 Fácil |
 | **2** | Soft delete viajes | ✅ 1 col | trips table, TripsListClient | 🟢 Fácil |
 | **3** | Itinerario completo (link reservas + ItineraryDay + mapa) | ✅ 1 tabla | TripItinerarioClient (726 líneas), TripMapaClient | 🔴 Complejo |
-| **4** | OCR vouchers reservas | ❌ | app/api/ocr/reservation, TripReservasClient | 🟡 Medio |
-| **5** | OCR gastos (endpoint) | ❌ | app/api/ocr/gasto | 🟢 Fácil |
-| **6** | Telegram bot | ❌ | webhook, handlers | 🔴 Bloqueado* |
+| ⏳ 4 | OCR vouchers reservas | ❌ | app/api/ocr/reservation, TripReservasClient | 🟡 Medio |
+| ✅ 5 | OCR gastos + Galería comprobantes | ❌ | app/api/ocr/gasto, TripGastosClient | 🟢 Fácil |
+| ✅ 6 | Telegram bot | ❌ | webhook, handlers | 🟢 Implementado |
 
-*Bloqueado hasta que el usuario agregue `TELEGRAM_BOT_TOKEN` y `ANTHROPIC_API_KEY` a Vercel.
+*Etapa 5 y 6 implementadas y pushadas (awaiting PR merge). Tokens consolidados en memoria.
 
 ---
 
@@ -169,17 +169,25 @@ model ItineraryDay {
 
 ---
 
-## Etapa 5: OCR gastos (endpoint faltante)
-**Sin migración. 1 archivo nuevo. La UI ya existe en TripGastosClient.**
+## Etapa 5: OCR gastos + Galería de comprobantes
+**Sin migración. 2 archivos nuevos. La UI base ya existe en TripGastosClient.**
 
-La UI del form de gastos ya tiene upload de recibo. Solo falta el endpoint que extrae datos.
+**Cambio clave (user feedback 2026-04-05):** Los comprobantes se cargan como **adjuntos de referencia** en el form de gastos. Deben estar disponibles en la sección de presupuesto para dar seguimiento posterior. No solo se guardan, sino que son **recuperables y visibles**.
 
 ### Archivos:
 | Archivo | Cambio |
 |---|---|
-| `app/api/ocr/gasto/route.ts` | **Nuevo** — igual al de reservas pero extrae `amount`, `date`, `category`, `currency`, `description` |
+| `app/api/ocr/gasto/route.ts` | **Nuevo** — Recibe imagen/PDF, extrae `amount`, `date`, `category`, `currency`, `description` vía Claude Vision |
+| `app/api/upload/route.ts` | **Actualizar** — Permitir PDF además de imágenes. Validar tipos MIME: `image/jpeg`, `image/png`, `image/webp`, `application/pdf` |
+| `components/TripGastosClient.tsx` | **Actualizar** — File input para upload (drag & drop o botón), mostrar preview de recibo, guardar `receiptUrl` en DB, mostrar badge/thumbnail en lista de gastos |
+| `prisma/schema.prisma` | **Verificar** — Campo `receiptUrl` en modelo Expense ya existe (si no: agregar) |
 
-Agregar en `TripGastosClient.tsx`: cuando se sube un recibo, llamar al OCR y pre-llenar el form automáticamente.
+**Flujo de usuario:**
+1. En form de gasto: click "Cargar comprobante" → upload imagen/PDF
+2. Auto-detecta OCR → pre-llena `amount`, `date`, `category` (usuario confirma)
+3. Gasto se guarda con `receiptUrl`
+4. En lista de gastos: thumbnail/badge del comprobante, clickeable para ver/descargar
+5. Permite auditoría posterior de gastos pagados
 
 ---
 
