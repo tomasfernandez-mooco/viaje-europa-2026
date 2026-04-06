@@ -14,6 +14,28 @@ type Props = {
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
+// Type colors for reservations and itineraries
+const TYPE_COLORS: Record<string, string> = {
+  vuelo: "#3b82f6",       // azul
+  alojamiento: "#8b5cf6", // violeta
+  transporte: "#f59e0b",  // ámbar
+  crucero: "#06b6d4",     // cyan
+  actividad: "#10b981",   // verde
+  comida: "#f97316",      // naranja
+  seguro: "#6b7280",      // gris
+  shopping: "#ec4899",    // rosa
+  otro: "#94a3b8",        // slate
+  logistica: "#64748b",
+  "por-reservar": "#ef4444",  // rojo para status
+  pendiente: "#eab308",       // amarillo para status
+  confirmado: "#10b981",      // verde para status
+  cancelado: "#6b7280",       // gris para status
+};
+
+function getTypeColor(type: string | undefined): string {
+  return TYPE_COLORS[type?.toLowerCase() ?? "otro"] ?? TYPE_COLORS.otro;
+}
+
 export default function TripCalendarioClient({ tripId, tripName, startDate, endDate, items, reservations }: Props) {
   const tripDates = generateDateRange(startDate, endDate);
   const startD = new Date(startDate + "T12:00:00");
@@ -155,11 +177,11 @@ export default function TripCalendarioClient({ tripId, tripName, startDate, endD
                           {dayItems.slice(0, 2).map((item, ei) => (
                             <span
                               key={ei}
-                              className={`w-full text-[9px] leading-tight truncate px-1 py-0.5 rounded mb-0.5 ${
-                                isSelected
-                                  ? "bg-white/20 text-white"
-                                  : getCategoryBlockColor(item.category)
-                              }`}
+                              className="w-full text-[9px] leading-tight truncate px-1 py-0.5 rounded mb-0.5 font-medium"
+                              style={{
+                                backgroundColor: isSelected ? "rgba(255, 255, 255, 0.2)" : getTypeColor(item.category),
+                                color: "white",
+                              }}
                             >
                               {item.title}
                             </span>
@@ -199,13 +221,16 @@ export default function TripCalendarioClient({ tripId, tripName, startDate, endD
                   <div className="space-y-2">
                     {selectedItems.map((item) => (
                       <div key={item.id} className="flex gap-3 p-2.5 rounded-xl bg-white/40 border border-white/30">
-                        <div className={`w-1 rounded-full shrink-0 ${getCategoryBarColor(item.category)}`} />
+                        <div className="w-1 rounded-full shrink-0" style={{ backgroundColor: getTypeColor(item.category) }} />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             {item.time && (
                               <span className="text-[10px] font-mono text-c-muted">{item.time}</span>
                             )}
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${CATEGORIA_COLORS[item.category] ?? CATEGORIA_COLORS.otro}`}>
+                            <span
+                              className="text-[10px] px-1.5 py-0.5 rounded-full font-medium text-white"
+                              style={{ backgroundColor: getTypeColor(item.category) }}
+                            >
                               {CATEGORIA_LABELS[item.category] ?? item.category}
                             </span>
                           </div>
@@ -230,13 +255,20 @@ export default function TripCalendarioClient({ tripId, tripName, startDate, endD
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-c-text truncate">{r.title}</p>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full mt-1 inline-block ${
-                              r.status === "confirmado" ? "bg-green-100/80 text-green-700" :
-                              r.status === "pendiente" ? "bg-yellow-100/80 text-yellow-700" :
-                              "bg-red-100/80 text-red-700"
-                            }`}>
-                              {r.status}
-                            </span>
+                            <div className="flex gap-1.5 mt-1 flex-wrap">
+                              <span
+                                className="text-[10px] px-1.5 py-0.5 rounded-full font-medium text-white"
+                                style={{ backgroundColor: getTypeColor(r.type) }}
+                              >
+                                {r.type ? CATEGORIA_LABELS[r.type] ?? r.type : "Reserva"}
+                              </span>
+                              <span
+                                className="text-[10px] px-1.5 py-0.5 rounded-full font-medium text-white"
+                                style={{ backgroundColor: getTypeColor(r.status) }}
+                              >
+                                {r.status}
+                              </span>
+                            </div>
                           </div>
                           <span className="text-xs font-semibold text-c-muted">${r.priceUSD.toLocaleString()}</span>
                         </div>

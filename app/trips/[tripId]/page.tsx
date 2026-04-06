@@ -5,16 +5,20 @@ import TripDashboardClient from "@/components/TripDashboardClient";
 export const dynamic = "force-dynamic";
 
 export default async function TripDashboardPage({ params }: { params: { tripId: string } }) {
-  const [trip, reservations, configRows, locations, checklistItems] = await Promise.all([
+  const [trip, reservations, configRows, locations, checklistItems, itineraryItems] = await Promise.all([
     prisma.trip.findUnique({ where: { id: params.tripId } }),
     prisma.reservation.findMany({ where: { tripId: params.tripId }, orderBy: { startDate: "asc" } }),
     prisma.tripConfig.findMany({ where: { tripId: params.tripId } }),
     prisma.location.findMany({ where: { tripId: params.tripId }, orderBy: { orderIndex: "asc" } }),
     prisma.checklistItem.findMany({ where: { tripId: params.tripId } }),
+    prisma.itineraryItem.findMany({ where: { tripId: params.tripId } }),
   ]);
 
   const config: Record<string, string> = {};
   configRows.forEach((r) => (config[r.key] = r.value));
+
+  // Get distinct cities from itinerary
+  const destinations = [...new Set(itineraryItems.map(item => item.city).filter(Boolean))];
 
   return (
     <TripDashboardClient
@@ -24,6 +28,7 @@ export default async function TripDashboardPage({ params }: { params: { tripId: 
       locationCount={locations.length}
       checklistTotal={checklistItems.length}
       checklistDone={checklistItems.filter(c => c.completed).length}
+      destinations={destinations}
     />
   );
 }

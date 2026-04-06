@@ -9,9 +9,10 @@ type Props = {
   locationCount: number;
   checklistTotal: number;
   checklistDone: number;
+  destinations?: string[];
 };
 
-export default function TripDashboardClient({ trip, reservations, config, locationCount, checklistTotal, checklistDone }: Props) {
+export default function TripDashboardClient({ trip, reservations, config, locationCount, checklistTotal, checklistDone, destinations = [] }: Props) {
   const presupuestoTotal = Number(config.presupuestoTotal ?? 13000);
   const viajeros = Number(config.travelers ?? config.viajeros ?? 3) || 3;
   const totalCost = reservations.reduce((sum, r) => sum + r.priceUSD, 0);

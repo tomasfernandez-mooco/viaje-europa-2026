@@ -26,10 +26,10 @@
 | **2** | Soft delete viajes | ✅ 1 col | trips table, TripsListClient | 🟢 Fácil |
 | **3** | Itinerario completo (link reservas + ItineraryDay + mapa) | ✅ 1 tabla | TripItinerarioClient (726 líneas), TripMapaClient | 🔴 Complejo |
 | ✅ 4 | OCR vouchers reservas | ❌ | app/api/ocr/reservation, TripReservasClient | 🟡 Medio |
-| ✅ 5 | OCR gastos + Galería comprobantes | ❌ | app/api/ocr/gasto, TripGastosClient | 🟢 Fácil |
-| ✅ 6 | Telegram bot | ❌ | webhook, handlers | 🟢 Implementado |
+| ✅ 5 | OCR gastos + Galería comprobantes | ❌ | app/api/ocr/gasto, TripGastosClient | 🟢 Implementado |
+| ✅ 6 | Telegram bot + Upload facturas | ❌ | webhook, OCR endpoints, upload UI | 🟢 Implementado |
 
-*Etapa 5 y 6 implementadas y pushadas (awaiting PR merge). Tokens consolidados en memoria.
+*Etapas 1-6 implementadas. Etapa 5 y 6 en rama (awaiting PR merge). Tokens consolidados en memoria.
 
 ---
 
