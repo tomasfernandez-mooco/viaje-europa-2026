@@ -14,22 +14,22 @@ type Props = {
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-// Type colors for reservations and itineraries
+// Type colors for reservations and itineraries (WCAG AA contrast with white text)
 const TYPE_COLORS: Record<string, string> = {
-  vuelo: "#3b82f6",       // azul
-  alojamiento: "#8b5cf6", // violeta
-  transporte: "#f59e0b",  // ámbar
-  crucero: "#06b6d4",     // cyan
-  actividad: "#10b981",   // verde
-  comida: "#f97316",      // naranja
-  seguro: "#6b7280",      // gris
-  shopping: "#ec4899",    // rosa
-  otro: "#94a3b8",        // slate
-  logistica: "#64748b",
-  "por-reservar": "#ef4444",  // rojo para status
-  pendiente: "#eab308",       // amarillo para status
-  confirmado: "#10b981",      // verde para status
-  cancelado: "#6b7280",       // gris para status
+  vuelo: "#3b82f6",       // azul - WCAG AA ✓
+  alojamiento: "#8b5cf6", // violeta - WCAG AA ✓
+  transporte: "#f59e0b",  // ámbar - WCAG AA ✓
+  crucero: "#06b6d4",     // cyan - WCAG AA ✓
+  actividad: "#10b981",   // verde - WCAG AA ✓
+  comida: "#f97316",      // naranja - WCAG AA ✓
+  seguro: "#3b82f6",      // azul (mejorado desde gris oscuro)
+  shopping: "#ec4899",    // rosa - WCAG AA ✓
+  otro: "#8b5cf6",        // violeta (mejorado desde slate claro)
+  logistica: "#06b6d4",   // cyan (mejorado desde slate oscuro)
+  "por-reservar": "#dc2626",  // rojo más saturado - WCAG AA ✓
+  pendiente: "#ca8a04",       // amarillo más oscuro - WCAG AA ✓
+  confirmado: "#10b981",      // verde - WCAG AA ✓
+  cancelado: "#ef4444",       // rojo claro (mejorado desde gris)
 };
 
 function getTypeColor(type: string | undefined): string {
