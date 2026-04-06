@@ -102,6 +102,11 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
   const [activeTab, setActiveTab] = useState<"gastos"|"viajeros"|"deudas">("gastos");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  // ── import comprobante modal ──
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importStatus, setImportStatus] = useState("");
+
   const filtered = useMemo(() => {
     return filterCat === "todas" ? expenses : expenses.filter(e => e.category === filterCat);
   }, [expenses, filterCat]);
@@ -275,9 +280,14 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-display font-semibold text-c-heading tracking-tight">Gastos</h1>
-        <p className="text-sm text-c-muted mt-1">{expenses.length} registros · ${totalAll.toLocaleString()} USD total</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-display font-semibold text-c-heading tracking-tight">Gastos</h1>
+          <p className="text-sm text-c-muted mt-1">{expenses.length} registros · ${totalAll.toLocaleString()} USD total</p>
+        </div>
+        <button onClick={() => setShowImportModal(true)} className="px-4 py-2 bg-accent text-white rounded-xl text-sm font-medium hover:bg-accent/90 transition-colors flex items-center gap-2 whitespace-nowrap">
+          📤 Importar comprobante
+        </button>
       </div>
 
       {/* Tabs */}
@@ -711,6 +721,98 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
             </div>
           )}
         </>
+      )}
+
+      {/* Import Comprobante Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-c-heading">Importar comprobante</h2>
+              <button onClick={() => { setShowImportModal(false); setImportFile(null); setImportStatus(""); }} className="text-c-muted hover:text-c-text">✕</button>
+            </div>
+
+            <p className="text-sm text-c-muted">Subí una foto o PDF de tu comprobante. Se analizará automáticamente.</p>
+
+            {/* Drag & drop area */}
+            <div
+              className="border-2 border-dashed border-c-border rounded-2xl p-8 text-center cursor-pointer hover:bg-accent/5 transition-colors"
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("bg-accent/10"); }}
+              onDragLeave={(e) => { e.currentTarget.classList.remove("bg-accent/10"); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove("bg-accent/10");
+                const file = e.dataTransfer.files?.[0];
+                if (file) setImportFile(file);
+              }}
+            >
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                id="import-receipt"
+                className="hidden"
+              />
+              <label htmlFor="import-receipt" className="block cursor-pointer">
+                <p className="text-2xl mb-2">📤</p>
+                <p className="text-sm font-medium text-c-text">Arrastrá tu comprobante acá</p>
+                <p className="text-xs text-c-muted mt-1">o hacé click para seleccionar</p>
+              </label>
+            </div>
+
+            {importFile && <p className="text-sm text-center text-c-muted">📎 {importFile.name}</p>}
+            {importStatus && (
+              <div className={`text-sm text-center py-2 rounded-xl ${importStatus.includes("✅") ? "bg-green-100 text-green-700" : importStatus.includes("❌") ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
+                {importStatus}
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  if (!importFile) return;
+                  setImportStatus("⏳ Analizando...");
+                  // Call OCR
+                  const fd = new FormData();
+                  fd.append("file", importFile);
+                  fetch(`/api/ocr/gasto`, { method: "POST", body: fd })
+                    .then(r => r.json())
+                    .then(data => {
+                      setForm(f => ({
+                        ...f,
+                        amount: String(data.amount),
+                        currency: data.currency,
+                        category: data.category,
+                        description: data.description,
+                        date: data.date,
+                      }));
+                      setReceiptUrl(data.receiptUrl);
+                      setImportStatus("✅ Analizado y pre-llenado");
+                      setTimeout(() => {
+                        setShowImportModal(false);
+                        setImportFile(null);
+                        setImportStatus("");
+                        setActiveTab("gastos");
+                      }, 1500);
+                    })
+                    .catch(e => {
+                      setImportStatus(`❌ ${e.error || e.message}`);
+                    });
+                }}
+                disabled={!importFile}
+                className="flex-1 py-2 bg-accent text-white rounded-xl font-medium disabled:opacity-50"
+              >
+                Analizar comprobante
+              </button>
+              <button
+                onClick={() => { setShowImportModal(false); setImportFile(null); setImportStatus(""); }}
+                className="px-4 py-2 border border-c-border text-c-text rounded-xl hover:bg-white/5"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
