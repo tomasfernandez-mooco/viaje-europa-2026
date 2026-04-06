@@ -769,35 +769,36 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
 
             <div className="flex gap-2">
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (!importFile) return;
                   setImportStatus("⏳ Analizando...");
-                  // Call OCR
-                  const fd = new FormData();
-                  fd.append("file", importFile);
-                  fetch(`/api/ocr/gasto`, { method: "POST", body: fd })
-                    .then(r => r.json())
-                    .then(data => {
-                      setForm(f => ({
-                        ...f,
-                        amount: String(data.amount),
-                        currency: data.currency,
-                        category: data.category,
-                        description: data.description,
-                        date: data.date,
-                      }));
-                      setReceiptUrl(data.receiptUrl);
-                      setImportStatus("✅ Analizado y pre-llenado");
-                      setTimeout(() => {
-                        setShowImportModal(false);
-                        setImportFile(null);
-                        setImportStatus("");
-                        setActiveTab("gastos");
-                      }, 1500);
-                    })
-                    .catch(e => {
-                      setImportStatus(`❌ ${e.error || e.message}`);
-                    });
+                  try {
+                    const fd = new FormData();
+                    fd.append("file", importFile);
+                    const response = await fetch(`/api/ocr/gasto`, { method: "POST", body: fd });
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                      setImportStatus(`❌ ${data.error || "Error al analizar"}`);
+                      return;
+                    }
+
+                    // Pre-fill form with extracted data
+                    setForm(f => ({
+                      ...f,
+                      amount: String(data.amount),
+                      currency: data.currency,
+                      category: data.category,
+                      description: data.description,
+                      date: data.date,
+                    }));
+                    setReceiptUrl(data.receiptUrl);
+                    setImportStatus("✅ Comprobante analizado. El form se actualizó. Cerrá el modal para ver.");
+                    setImportFile(null);
+                  } catch (error) {
+                    console.error("OCR error:", error);
+                    setImportStatus(`❌ Error: ${error instanceof Error ? error.message : "Error desconocido"}`);
+                  }
                 }}
                 disabled={!importFile}
                 className="flex-1 py-2 bg-accent text-white rounded-xl font-medium disabled:opacity-50"
