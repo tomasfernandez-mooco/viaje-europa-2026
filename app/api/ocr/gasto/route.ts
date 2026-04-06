@@ -43,11 +43,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     "image/jpeg",
     "image/png",
     "image/webp",
-    "application/pdf",
   ];
+
+  // PDFs not supported by Claude Vision - require image conversion
+  if (file.type === "application/pdf") {
+    return NextResponse.json(
+      { error: "Por favor cargá una foto de tu comprobante (JPG, PNG, WebP). Los PDFs no se pueden analizar directamente. Sacá una foto de la factura/ticket." },
+      { status: 400 }
+    );
+  }
+
   if (!acceptedMimeTypes.includes(file.type)) {
     return NextResponse.json(
-      { error: "Tipo de archivo no válido (JPG, PNG, WEBP, PDF)" },
+      { error: "Tipo de archivo no válido. Usa JPG, PNG o WebP" },
       { status: 400 }
     );
   }
@@ -70,15 +78,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const buffer = await file.arrayBuffer();
     const base64 = Buffer.from(buffer).toString("base64");
 
-    // Determine media type
+    // Determine media type (only images at this point, PDFs rejected above)
     const mediaType =
-      file.type === "application/pdf"
-        ? "application/pdf"
-        : file.type === "image/jpeg"
-          ? "image/jpeg"
-          : file.type === "image/png"
-            ? "image/png"
-            : "image/webp";
+      file.type === "image/jpeg"
+        ? "image/jpeg"
+        : file.type === "image/png"
+          ? "image/png"
+          : "image/webp";
+
+    console.log(`[OCR-GASTO] Processing file: ${file.name}, size: ${file.size}, type: ${mediaType}`);
 
     // Call Claude Vision for OCR
     const message = await anthropic.messages.create({
@@ -118,15 +126,30 @@ Solo responde con el JSON, sin explicaciones adicionales.`,
     // Parse Claude's response
     const responseText =
       message.content[0].type === "text" ? message.content[0].text : "";
-    const ocrData = JSON.parse(responseText);
 
-    // Validate extracted data
-    if (!ocrData.amount || !ocrData.date || !ocrData.category || !ocrData.currency) {
+    console.log(`[OCR-GASTO] Claude response: ${responseText.substring(0, 200)}`);
+
+    let ocrData;
+    try {
+      ocrData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error(`[OCR-GASTO] JSON parse error:`, parseError);
       return NextResponse.json(
-        { error: "No se pudieron extraer datos suficientes del comprobante" },
+        { error: "No se pudo procesar la respuesta del OCR. Asegúrate que la imagen es clara y legible." },
         { status: 400 }
       );
     }
+
+    // Validate extracted data
+    if (!ocrData.amount || !ocrData.date || !ocrData.category || !ocrData.currency) {
+      console.warn(`[OCR-GASTO] Missing required fields:`, { amount: ocrData.amount, date: ocrData.date, category: ocrData.category, currency: ocrData.currency });
+      return NextResponse.json(
+        { error: "No se pudieron extraer todos los datos del comprobante. Prueba con una imagen más clara." },
+        { status: 400 }
+      );
+    }
+
+    console.log(`[OCR-GASTO] ✅ Successfully extracted: amount=${ocrData.amount}, date=${ocrData.date}, category=${ocrData.category}`);
 
     const result: OCRResult = {
       amount: parseFloat(ocrData.amount),
@@ -139,17 +162,24 @@ Solo responde con el JSON, sin explicaciones adicionales.`,
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("OCR error:", error);
+    console.error("[OCR-GASTO] Fatal error:", error instanceof Error ? error.message : String(error));
 
     if (error instanceof SyntaxError) {
       return NextResponse.json(
-        { error: "Error al procesar la respuesta del OCR" },
+        { error: "Error al procesar la respuesta del OCR. La imagen puede no ser legible." },
         { status: 500 }
       );
     }
 
+    if (error instanceof Error && error.message.includes("API")) {
+      return NextResponse.json(
+        { error: "Error en la API de OCR. Intenta de nuevo más tarde." },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
-      { error: "Error al procesar el comprobante" },
+      { error: "Error al procesar el comprobante. Intenta con una imagen clara." },
       { status: 500 }
     );
   }
