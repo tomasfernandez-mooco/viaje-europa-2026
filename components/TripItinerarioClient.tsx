@@ -417,16 +417,11 @@ export default function TripItinerarioClient({
                     </div>
                   ) : (
                     <div className="flex items-center gap-2.5 flex-wrap">
-                      <button
-                        onClick={() => {
-                          setEditingDayTitle(fecha);
-                          setDayTitleText(dayTitles[fecha] || `Día ${index + 1}`);
-                        }}
-                        className="text-xs font-medium bg-accent text-white px-2.5 py-0.5 rounded-xl hover:bg-terra-500 transition-colors flex items-center gap-1.5 group"
-                      >
-                        {dayTitles[fecha] || `Día ${index + 1}`}
-                        <PencilIcon />
-                      </button>
+                      {/* Day number - READ ONLY */}
+                      <span className="text-xs font-medium bg-accent text-white px-2.5 py-0.5 rounded-xl">
+                        {`Día ${index + 1}`}
+                      </span>
+                      {/* Location - TODO: make editable inline */}
                       {loc && (
                         <p className="text-sm font-medium text-c-muted">
                           {loc.city}{loc.country ? `, ${loc.country}` : ""}
