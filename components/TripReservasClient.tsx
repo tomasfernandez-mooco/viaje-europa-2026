@@ -428,6 +428,8 @@ function ReservationModal({
     travelerIds: JSON.stringify(allMemberIds),
   };
   const [form, setForm] = useState<Partial<Reservation>>(reservation ?? empty);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const inputClass = "glass-input";
   const labelClass = "block text-xs font-medium text-c-muted mb-1";
 
@@ -451,6 +453,49 @@ function ReservationModal({
       next.priceUSD = Math.round(toUSD(amt, cur, tcEurUsd, tcArsMep));
     }
     setForm(next);
+  }
+
+  async function handleFileUpload(file: File) {
+    setIsUploading(true);
+    setUploadError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/ocr/reservation", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Error procesando voucher");
+      }
+
+      const data = await res.json();
+
+      // Pre-fill form with extracted data
+      setForm((f) => ({
+        ...f,
+        title: data.title || f.title,
+        type: data.type || f.type,
+        city: data.city || f.city,
+        country: data.country || f.country,
+        startDate: data.startDate || f.startDate,
+        endDate: data.endDate || f.endDate,
+        price: data.price || f.price,
+        currency: data.currency || f.currency,
+        provider: data.provider || f.provider,
+        confirmationNumber: data.confirmationNumber || f.confirmationNumber,
+        notes: data.notes || f.notes,
+        attachmentUrl: data.voucherUrl,
+      }));
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   // Provider suggestion
@@ -569,11 +614,52 @@ function ReservationModal({
           </div>
 
           <div>
-            <label className={labelClass}>Adjunto (URL de imagen o documento)</label>
-            <input value={form.attachmentUrl ?? ""} onChange={(e) => update("attachmentUrl", e.target.value)}
-              placeholder="https://..." className={inputClass} />
+            <label className={labelClass}>Voucher / Confirmación</label>
+
+            {/* File upload zone */}
+            <div className="mb-4">
+              <label className="block border-2 border-dashed border-white/20 rounded-2xl p-6 text-center cursor-pointer hover:border-accent/40 transition-colors">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file);
+                    e.target.value = "";
+                  }}
+                  disabled={isUploading}
+                  className="hidden"
+                />
+                <div className="flex flex-col items-center gap-2">
+                  {isUploading ? (
+                    <>
+                      <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-xs text-c-muted">Extrayendo datos...</p>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-6 h-6 text-c-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                      <p className="text-xs text-c-text font-medium">Subir voucher (JPG, PNG, PDF)</p>
+                      <p className="text-[10px] text-c-muted">Se extraerán los datos automáticamente</p>
+                    </>
+                  )}
+                </div>
+              </label>
+              {uploadError && <p className="mt-2 text-xs text-red-500">{uploadError}</p>}
+            </div>
+
+            {/* Manual URL input */}
+            <div>
+              <label className="text-xs text-c-muted mb-1 block">O ingresa URL manualmente</label>
+              <input value={form.attachmentUrl ?? ""} onChange={(e) => { setUploadError(""); update("attachmentUrl", e.target.value); }}
+                placeholder="https://..." className={inputClass} />
+            </div>
+
+            {/* Preview */}
             {form.attachmentUrl && /\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(form.attachmentUrl) && (
-              <img src={form.attachmentUrl} alt="Adjunto" className="mt-2 h-24 w-auto rounded-xl object-cover border border-white/20" />
+              <img src={form.attachmentUrl} alt="Voucher" className="mt-3 h-32 w-auto rounded-xl object-cover border border-white/20" />
             )}
           </div>
 

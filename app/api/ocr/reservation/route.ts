@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import Anthropic from "@anthropic-ai/sdk";
+import { Anthropic } from "@anthropic-ai/sdk";
+import { put } from "@vercel/blob";
 
 export const dynamic = "force-dynamic";
 
-const client = new Anthropic();
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
@@ -18,6 +21,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No se recibió archivo" }, { status: 400 });
     }
 
+    // Validate type and size
+    const acceptedMimeTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "application/pdf",
+    ];
+    if (!acceptedMimeTypes.includes(file.type)) {
+      return NextResponse.json(
+        { error: "Tipo de archivo no válido (JPG, PNG, WEBP, PDF)" },
+        { status: 400 }
+      );
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "El archivo supera el límite de 5MB" },
+        { status: 400 }
+      );
+    }
+
+    // Upload to Vercel Blob
+    const blob = await put(
+      `trips/${user.id}-reservation-${Date.now()}-${file.name}`,
+      file,
+      { access: "public" }
+    );
+
     // Convert file to base64
     const buffer = await file.arrayBuffer();
     const base64 = Buffer.from(buffer).toString("base64");
@@ -30,8 +60,8 @@ export async function POST(req: NextRequest) {
     else if (file.type.includes("pdf")) mediaType = "application/pdf";
 
     // Call Claude Vision API
-    const response = await client.messages.create({
-      model: "claude-opus-4-5-20250805",
+    const response = await anthropic.messages.create({
+      model: "claude-opus-4-5",
       max_tokens: 1024,
       messages: [
         {
@@ -79,10 +109,19 @@ Responde SOLO con el JSON.`,
       extractedData = JSON.parse(content.text);
     } catch {
       console.error("Failed to parse OCR response:", content.text);
-      extractedData = { error: "No se pudo extraer datos estructurados" };
+      return NextResponse.json(
+        { error: "No se pudo extraer datos estructurados" },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json(extractedData);
+    // Add voucherUrl to response
+    const result = {
+      ...extractedData,
+      voucherUrl: blob.url,
+    };
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("[ocr-reservation-error]", error);
     return NextResponse.json({ error: "Error procesando OCR de reserva" }, { status: 500 });
