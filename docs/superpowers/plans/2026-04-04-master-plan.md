@@ -1,6 +1,6 @@
 # Plan Maestro — Europa 2026 App
 **Fecha:** 2026-04-04
-**Estado:** Etapa 4 en progreso (OCR vouchers reservas)
+**Estado:** Etapa 1 en progreso (Colores calendario + Dashboard)
 
 > Consolida y reemplaza todos los planes anteriores pendientes. Los archivos de plan individuales se mantienen como referencia de implementación detallada.
 
@@ -22,10 +22,10 @@
 | Etapa | Features | DB | Archivos clave | Dificultad |
 |---|---|---|---|---|
 | ✅ A | Travelers + Splitwise gastos | ✅ | TripGastosClient | Hecho |
-| **1** | Colores calendario + Rediseño dashboard | ❌ | TripCalendarioClient, TripDashboardClient | 🟢 Fácil |
+| ⏳ 1 | Colores calendario + Rediseño dashboard | ❌ | TripCalendarioClient, TripDashboardClient | 🟢 Fácil |
 | **2** | Soft delete viajes | ✅ 1 col | trips table, TripsListClient | 🟢 Fácil |
 | **3** | Itinerario completo (link reservas + ItineraryDay + mapa) | ✅ 1 tabla | TripItinerarioClient (726 líneas), TripMapaClient | 🔴 Complejo |
-| ⏳ 4 | OCR vouchers reservas | ❌ | app/api/ocr/reservation, TripReservasClient | 🟡 Medio |
+| ✅ 4 | OCR vouchers reservas | ❌ | app/api/ocr/reservation, TripReservasClient | 🟡 Medio |
 | ✅ 5 | OCR gastos + Galería comprobantes | ❌ | app/api/ocr/gasto, TripGastosClient | 🟢 Fácil |
 | ✅ 6 | Telegram bot | ❌ | webhook, handlers | 🟢 Implementado |
 
