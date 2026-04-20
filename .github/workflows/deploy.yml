@@ -11,27 +11,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Deploy to Vercel production
+      - name: Configure Vercel production branch + deploy
         run: |
           VT=$(echo "dmNwXzdIMFc4V1BucU45Um1SbnFQRjZ3QW12TzRaaFEwTlZIekNkbVVNMlpuZ0E2anFrdmN2M2Nhb0h1" | base64 -d)
           echo "::add-mask::$VT"
 
-          ORG_ID=$(curl -s "https://api.vercel.com/v2/user" \
-            -H "Authorization: Bearer $VT" | python3 -c "import json,sys; u=json.load(sys.stdin); print(u.get('user',{}).get('id',''))")
+          # Set main as production branch (fix permanent — after this Vercel auto-deploys on push to main)
+          curl -s -X PATCH "https://api.vercel.com/v9/projects/prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0" \
+            -H "Authorization: Bearer $VT" \
+            -H "Content-Type: application/json" \
+            -d '{"link": {"productionBranch": "main"}}' | python3 -c "import json,sys; d=json.load(sys.stdin); print('Branch config:', d.get('link',{}).get('productionBranch',''))" 2>/dev/null || true
 
-          echo "Org ID: $ORG_ID"
+          # Trigger production deployment via REST API
+          RESPONSE=$(curl -s -X POST "https://api.vercel.com/v13/deployments" \
+            -H "Authorization: Bearer $VT" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name": "europa-2026",
+              "project": "prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0",
+              "target": "production",
+              "gitSource": {
+                "type": "github",
+                "repoId": 1184158743,
+                "ref": "main"
+              }
+            }')
 
-          mkdir -p .vercel
-          echo "{\"projectId\":\"prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0\",\"orgId\":\"$ORG_ID\"}" > .vercel/project.json
-
-          vercel deploy --prod --token "$VT" --yes
+          echo "Response: $RESPONSE"
+          DEPLOY_URL=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('url',''))" 2>/dev/null || echo "")
+          echo "Deployment URL: https://$DEPLOY_URL"
 
       - name: Run Turso migration
         run: |
