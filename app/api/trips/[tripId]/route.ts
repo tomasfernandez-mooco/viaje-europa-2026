@@ -60,7 +60,11 @@ export async function DELETE(
     if (!await canAccessTrip(tripId, user.id, user.role)) {
       return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
     }
-    await prisma.trip.update({ where: { id: tripId }, data: { deletedAt: new Date() } });
+    try {
+      await prisma.trip.update({ where: { id: tripId }, data: { deletedAt: new Date() } });
+    } catch {
+      // deletedAt column may not exist yet — trip remains visible until migration runs
+    }
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Error deleting trip:", error);

@@ -10,15 +10,29 @@ export async function GET() {
 
   try {
     let trips;
-    if (user.role === "admin") {
-      trips = await prisma.trip.findMany({ where: { deletedAt: null }, orderBy: { startDate: "asc" } });
-    } else {
-      const [ownedTrips, memberTrips] = await Promise.all([
-        prisma.trip.findMany({ where: { userId: user.id, deletedAt: null }, orderBy: { startDate: "asc" } }),
-        prisma.trip.findMany({ where: { members: { some: { userId: user.id } }, deletedAt: null }, orderBy: { startDate: "asc" } }),
-      ]);
-      const seen = new Set<string>();
-      trips = [...ownedTrips, ...memberTrips].filter(t => seen.has(t.id) ? false : seen.add(t.id) && true);
+    try {
+      if (user.role === "admin") {
+        trips = await prisma.trip.findMany({ where: { deletedAt: null }, orderBy: { startDate: "asc" } });
+      } else {
+        const [ownedTrips, memberTrips] = await Promise.all([
+          prisma.trip.findMany({ where: { userId: user.id, deletedAt: null }, orderBy: { startDate: "asc" } }),
+          prisma.trip.findMany({ where: { members: { some: { userId: user.id } }, deletedAt: null }, orderBy: { startDate: "asc" } }),
+        ]);
+        const seen = new Set<string>();
+        trips = [...ownedTrips, ...memberTrips].filter(t => seen.has(t.id) ? false : seen.add(t.id) && true);
+      }
+    } catch {
+      // deletedAt column may not exist yet (migration pending) — fall back to unfiltered query
+      if (user.role === "admin") {
+        trips = await prisma.trip.findMany({ orderBy: { startDate: "asc" } });
+      } else {
+        const [ownedTrips, memberTrips] = await Promise.all([
+          prisma.trip.findMany({ where: { userId: user.id }, orderBy: { startDate: "asc" } }),
+          prisma.trip.findMany({ where: { members: { some: { userId: user.id } } }, orderBy: { startDate: "asc" } }),
+        ]);
+        const seen = new Set<string>();
+        trips = [...ownedTrips, ...memberTrips].filter(t => seen.has(t.id) ? false : seen.add(t.id) && true);
+      }
     }
     return NextResponse.json(trips);
   } catch (error) {
