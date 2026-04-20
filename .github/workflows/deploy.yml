@@ -11,27 +11,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Deploy to Vercel production
+      - name: Deploy to Vercel via API
         run: |
           VT=$(echo "dmNwXzdIMFc4V1BucU45Um1SbnFQRjZ3QW12TzRaaFEwTlZIekNkbVVNMlpuZ0E2anFrdmN2M2Nhb0h1" | base64 -d)
           echo "::add-mask::$VT"
 
-          ORG_ID=$(curl -s "https://api.vercel.com/v2/user" \
-            -H "Authorization: Bearer $VT" | python3 -c "import json,sys; u=json.load(sys.stdin); print(u.get('user',{}).get('id',''))")
+          RESPONSE=$(curl -s -X POST "https://api.vercel.com/v13/deployments" \
+            -H "Authorization: Bearer $VT" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name": "europa-2026",
+              "project": "prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0",
+              "target": "production",
+              "gitSource": {
+                "type": "github",
+                "repoId": 1184158743,
+                "ref": "main"
+              }
+            }')
 
-          echo "Org ID: $ORG_ID"
+          echo "Response: $RESPONSE"
 
-          mkdir -p .vercel
-          echo "{\"projectId\":\"prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0\",\"orgId\":\"$ORG_ID\"}" > .vercel/project.json
+          DEPLOY_URL=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('url',''))" 2>/dev/null || echo "")
+          echo "Deployment URL: $DEPLOY_URL"
 
-          vercel deploy --prod --token "$VT" --yes
+          STATE=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('readyState','') or d.get('status',''))" 2>/dev/null || echo "")
+          echo "State: $STATE"
 
       - name: Run Turso migration
         run: |
