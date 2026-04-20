@@ -18,32 +18,19 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      - name: Get Vercel project info and deploy
+      - name: Deploy to Vercel production
         run: |
           VT=$(echo "dmNwXzdIMFc4V1BucU45Um1SbnFQRjZ3QW12TzRaaFEwTlZIekNkbVVNMlpuZ0E2anFrdmN2M2Nhb0h1" | base64 -d)
           echo "::add-mask::$VT"
 
-          PROJECTS=$(curl -s "https://api.vercel.com/v9/projects" \
-            -H "Authorization: Bearer $VT")
+          ORG_ID=$(curl -s "https://api.vercel.com/v2/user" \
+            -H "Authorization: Bearer $VT" | python3 -c "import json,sys; u=json.load(sys.stdin); print(u.get('user',{}).get('id',''))")
 
-          PROJECT_ID=$(echo "$PROJECTS" | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-for p in data.get('projects', []):
-    if 'europa' in p['name'].lower():
-        print(p['id'])
-        break
-")
-          ORG_ID=$(echo "$PROJECTS" | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-for p in data.get('projects', []):
-    if 'europa' in p['name'].lower():
-        print(p.get('accountId', ''))
-        break
-")
+          echo "Org ID: $ORG_ID"
+
           mkdir -p .vercel
-          echo "{\"projectId\":\"$PROJECT_ID\",\"orgId\":\"$ORG_ID\"}" > .vercel/project.json
+          echo "{\"projectId\":\"prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0\",\"orgId\":\"$ORG_ID\"}" > .vercel/project.json
+
           vercel deploy --prod --token "$VT" --yes
 
       - name: Run Turso migration
