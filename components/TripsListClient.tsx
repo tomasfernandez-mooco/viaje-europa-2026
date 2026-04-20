@@ -92,7 +92,7 @@ export default function TripsListClient({ trips: initialTrips, userName, initial
   }
 
   async function handleDelete(tripId: string, tripName: string) {
-    if (!confirm(`Eliminar "${tripName}" y todos sus datos? Esta accion no se puede deshacer.`)) return;
+    if (!confirm(`Archivar "${tripName}"?\n\nEl viaje desaparece de la lista pero sus datos no se borran. Se puede recuperar si hace falta.`)) return;
     setDeleting(tripId);
     try {
       const res = await fetch(`/api/trips/${tripId}`, { method: "DELETE" });

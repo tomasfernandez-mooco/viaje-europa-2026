@@ -17,6 +17,7 @@ model Trip {
   coverImage String?
   userId     String?
   createdAt  DateTime @default(now())
+  deletedAt  DateTime?
 
   user           User?           @relation(fields: [userId], references: [id])
   members        TripMember[]
