@@ -1,6 +1,12 @@
 # Plan Maestro — Europa 2026 App
-**Fecha:** 2026-04-04
-**Estado:** Etapa 1 en progreso (Colores calendario + Dashboard)
+**Fecha:** 2026-04-04 (actualizado 2026-04-21)
+**Estado:** Etapas 1-2 completas. Pendiente: Etapa 3 (Itinerario completo)
+
+## Infraestructura
+- **Vercel proyecto:** `europa-2026` (ID: `prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0`) — hay un segundo proyecto eliminado, NO recrear
+- **Dominio:** `planner.prodevelopmentlab.com` → conectado al proyecto `europa-2026`
+- **Deploy:** GitHub Actions en push a `main` (`.github/workflows/deploy.yml`) + Vercel GitHub integration
+- **Turso DB:** `libsql://viaje-europa-2026-tomasfernandez-mooco.aws-us-east-1.turso.io`
 
 > Consolida y reemplaza todos los planes anteriores pendientes. Los archivos de plan individuales se mantienen como referencia de implementación detallada.
 
@@ -22,14 +28,12 @@
 | Etapa | Features | DB | Archivos clave | Dificultad |
 |---|---|---|---|---|
 | ✅ A | Travelers + Splitwise gastos | ✅ | TripGastosClient | Hecho |
-| ⏳ 1 | Colores calendario + Rediseño dashboard | ❌ | TripCalendarioClient, TripDashboardClient | 🟢 Fácil |
-| **2** | Soft delete viajes | ✅ 1 col | trips table, TripsListClient | 🟢 Fácil |
-| **3** | Itinerario completo (link reservas + ItineraryDay + mapa) | ✅ 1 tabla | TripItinerarioClient (726 líneas), TripMapaClient | 🔴 Complejo |
-| ✅ 4 | OCR vouchers reservas | ❌ | app/api/ocr/reservation, TripReservasClient | 🟡 Medio |
-| ✅ 5 | OCR gastos + Galería comprobantes | ❌ | app/api/ocr/gasto, TripGastosClient | 🟢 Implementado |
-| ✅ 6 | Telegram bot + Upload facturas | ❌ | webhook, OCR endpoints, upload UI | 🟢 Implementado |
-
-*Etapas 1-6 implementadas. Etapa 5 y 6 en rama (awaiting PR merge). Tokens consolidados en memoria.
+| ✅ 1 | Colores calendario + Rediseño dashboard + Fix contraste WCAG + Ubicación editable | ✅ | TripCalendarioClient, TripDashboardClient | Hecho |
+| ✅ 2 | Soft delete viajes + Modal import comprobante | ✅ | trips table, TripsListClient | Hecho |
+| **⏳ 3** | Itinerario completo (link reservas + ItineraryDay + mapa) | ⚠️ pendiente migración | TripItinerarioClient, TripMapaClient | 🔴 Complejo |
+| ✅ 4 | OCR vouchers reservas | ✅ | app/api/ocr/reservation, TripReservasClient | Hecho |
+| ✅ 5 | OCR gastos + Galería comprobantes | ✅ | app/api/ocr/gasto, TripGastosClient | Hecho |
+| ✅ 6 | Telegram bot + Upload facturas | ✅ | webhook, OCR endpoints | Hecho (fix email pendiente) |
 
 ---
 
