@@ -43,19 +43,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     "image/jpeg",
     "image/png",
     "image/webp",
+    "application/pdf",
   ];
-
-  // PDFs not supported by Claude Vision - require image conversion
-  if (file.type === "application/pdf") {
-    return NextResponse.json(
-      { error: "Por favor cargá una foto de tu comprobante (JPG, PNG, WebP). Los PDFs no se pueden analizar directamente. Sacá una foto de la factura/ticket." },
-      { status: 400 }
-    );
-  }
 
   if (!acceptedMimeTypes.includes(file.type)) {
     return NextResponse.json(
-      { error: "Tipo de archivo no válido. Usa JPG, PNG o WebP" },
+      { error: "Tipo de archivo no válido. Usa JPG, PNG, WebP o PDF" },
       { status: 400 }
     );
   }
@@ -78,15 +71,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const buffer = await file.arrayBuffer();
     const base64 = Buffer.from(buffer).toString("base64");
 
-    // Determine media type (only images at this point, PDFs rejected above)
-    const mediaType =
-      file.type === "image/jpeg"
-        ? "image/jpeg"
-        : file.type === "image/png"
-          ? "image/png"
-          : "image/webp";
+    const isPdf = file.type === "application/pdf";
+    const mediaType = isPdf
+      ? "application/pdf"
+      : file.type === "image/png"
+        ? "image/png"
+        : file.type === "image/webp"
+          ? "image/webp"
+          : "image/jpeg";
 
     console.log(`[OCR-GASTO] Processing file: ${file.name}, size: ${file.size}, type: ${mediaType}`);
+
+    const fileContent = isPdf
+      ? { type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64 } }
+      : { type: "image" as const, source: { type: "base64" as const, media_type: mediaType as "image/jpeg" | "image/png" | "image/webp", data: base64 } };
 
     // Call Claude Vision for OCR
     const message = await anthropic.messages.create({
@@ -96,14 +94,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         {
           role: "user",
           content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mediaType,
-                data: base64,
-              },
-            },
+            fileContent,
             {
               type: "text",
               text: `Analiza este comprobante/recibo de gasto de viaje y extrae la siguiente información en formato JSON:
