@@ -41,16 +41,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Upload to Vercel Blob
-    const blob = await put(
-      `trips/${user.id}-reservation-${Date.now()}-${file.name}`,
-      file,
-      { access: "public" }
-    );
-
     // Convert file to base64
     const buffer = await file.arrayBuffer();
     const base64 = Buffer.from(buffer).toString("base64");
+
+    // Upload to Vercel Blob (optional — OCR still works without it)
+    let blobUrl: string | null = null;
+    try {
+      const blob = await put(
+        `trips/${user.id}-reservation-${Date.now()}-${file.name}`,
+        file,
+        { access: "public" }
+      );
+      blobUrl = blob.url;
+    } catch (blobErr) {
+      console.warn("[OCR-RESERVATION] Blob upload failed (BLOB_READ_WRITE_TOKEN missing?), continuing without file storage:", blobErr instanceof Error ? blobErr.message : String(blobErr));
+    }
 
     // Determine media type
     let mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp" | "application/pdf" = "image/jpeg";
@@ -118,7 +124,7 @@ Responde SOLO con el JSON.`,
     // Add voucherUrl to response
     const result = {
       ...extractedData,
-      voucherUrl: blob.url,
+      voucherUrl: blobUrl ?? "",
     };
 
     return NextResponse.json(result);

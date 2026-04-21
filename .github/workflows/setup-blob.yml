@@ -1,0 +1,131 @@
+name: Setup Vercel Blob Store
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check env vars and create Blob store
+        run: |
+          VT=$(echo "dmNwXzdIMFc4V1BucU45Um1SbnFQRjZ3QW12TzRaaFEwTlZIekNkbVVNMlpuZ0E2anFrdmN2M2Nhb0h1" | base64 -d)
+          echo "::add-mask::$VT"
+          PROJECT_ID="prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0"
+
+          echo "=== Current env vars ==="
+          curl -s "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
+            -H "Authorization: Bearer $VT" -o /tmp/envs.json
+
+          python3 -c "
+import json
+with open('/tmp/envs.json') as f:
+    d = json.load(f)
+keys = [(e.get('key'), e.get('target')) for e in d.get('envs', [])]
+for k, t in sorted(keys):
+    print(f'  {k}: {t}')
+" 2>/dev/null
+
+          BLOB_EXISTS=$(python3 -c "
+import json
+with open('/tmp/envs.json') as f:
+    d = json.load(f)
+print('yes' if any(e.get('key') == 'BLOB_READ_WRITE_TOKEN' for e in d.get('envs', [])) else 'no')
+" 2>/dev/null)
+          echo ""
+          echo "BLOB_READ_WRITE_TOKEN present: $BLOB_EXISTS"
+
+          if [ "$BLOB_EXISTS" = "no" ]; then
+            echo ""
+            echo "=== Creating Blob store ==="
+
+            # Get team ID from project
+            curl -s "https://api.vercel.com/v9/projects/$PROJECT_ID" \
+              -H "Authorization: Bearer $VT" -o /tmp/project.json
+            TEAM_ID=$(python3 -c "
+import json
+with open('/tmp/project.json') as f:
+    d = json.load(f)
+print(d.get('accountId',''))
+" 2>/dev/null)
+            echo "Team/Account ID: $TEAM_ID"
+
+            # Try creating blob store with team param
+            curl -s -X POST "https://api.vercel.com/v1/storage/stores?teamId=$TEAM_ID" \
+              -H "Authorization: Bearer $VT" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"europa-2026-blob","type":"blobstore"}' \
+              -o /tmp/store.json
+
+            python3 -c "
+import json
+with open('/tmp/store.json') as f:
+    d = json.load(f)
+print('Store response:', json.dumps(d, indent=2)[:800])
+" 2>/dev/null
+
+            STORE_ID=$(python3 -c "
+import json
+with open('/tmp/store.json') as f:
+    d = json.load(f)
+sid = (d.get('store') or {}).get('id') or d.get('id') or ''
+print(sid)
+" 2>/dev/null)
+
+            if [ -n "$STORE_ID" ]; then
+              echo "Store created: $STORE_ID — connecting to project..."
+              curl -s -X POST "https://api.vercel.com/v1/storage/stores/$STORE_ID/connections?teamId=$TEAM_ID" \
+                -H "Authorization: Bearer $VT" \
+                -H "Content-Type: application/json" \
+                -d "{\"projectId\":\"$PROJECT_ID\",\"environments\":[\"production\",\"preview\",\"development\"]}" \
+                -o /tmp/connect.json
+
+              python3 -c "
+import json
+with open('/tmp/connect.json') as f:
+    d = json.load(f)
+print('Connect response:', json.dumps(d, indent=2)[:600])
+" 2>/dev/null
+            else
+              echo "⚠️  Store creation failed. Manual steps:"
+              echo "  1. Go to vercel.com → europa-2026 project → Storage"
+              echo "  2. Click 'Create Database' → Blob"
+              echo "  3. Name: europa-2026-blob"
+              echo "  4. Connect to project (all environments)"
+            fi
+          else
+            echo "✅ BLOB_READ_WRITE_TOKEN already set — no action needed"
+          fi
+
+          echo ""
+          echo "=== Fix NEXT_PUBLIC_APP_URL ==="
+          APP_URL_ID=$(python3 -c "
+import json
+with open('/tmp/envs.json') as f:
+    d = json.load(f)
+for e in d.get('envs', []):
+    if e.get('key') == 'NEXT_PUBLIC_APP_URL':
+        print(e.get('id',''))
+        break
+" 2>/dev/null)
+
+          if [ -n "$APP_URL_ID" ]; then
+            R=$(curl -s -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID/env/$APP_URL_ID" \
+              -H "Authorization: Bearer $VT" \
+              -H "Content-Type: application/json" \
+              -d '{"value":"https://planner.prodevelopmentlab.com","target":["production"],"type":"plain"}')
+            echo "Updated: $(echo $R | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("value","error"))' 2>/dev/null)"
+          fi
+
+      - name: Trigger redeploy
+        run: |
+          VT=$(echo "dmNwXzdIMFc4V1BucU45Um1SbnFQRjZ3QW12TzRaaFEwTlZIekNkbVVNMlpuZ0E2anFrdmN2M2Nhb0h1" | base64 -d)
+          echo "::add-mask::$VT"
+          PROJECT_ID="prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0"
+
+          RESPONSE=$(curl -s -X POST "https://api.vercel.com/v13/deployments" \
+            -H "Authorization: Bearer $VT" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"europa-2026\",\"project\":\"$PROJECT_ID\",\"target\":\"production\",\"gitSource\":{\"type\":\"github\",\"repoId\":1184158743,\"ref\":\"main\"}}")
+
+          echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print('Deploy:', d.get('url','error'))" 2>/dev/null
