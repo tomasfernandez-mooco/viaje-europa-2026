@@ -60,16 +60,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    // Upload to Vercel Blob first
-    const blob = await put(
-      `trips/${user.id}-gasto-${Date.now()}-${file.name}`,
-      file,
-      { access: "public" }
-    );
-
     // Convert file to base64 for Claude Vision
     const buffer = await file.arrayBuffer();
     const base64 = Buffer.from(buffer).toString("base64");
+
+    // Upload to Vercel Blob (optional — OCR still works without it)
+    let blobUrl: string | null = null;
+    try {
+      const blob = await put(
+        `trips/${user.id}-gasto-${Date.now()}-${file.name}`,
+        file,
+        { access: "public" }
+      );
+      blobUrl = blob.url;
+    } catch (blobErr) {
+      console.warn("[OCR-GASTO] Blob upload failed (BLOB_READ_WRITE_TOKEN missing?), continuing without receipt storage:", blobErr instanceof Error ? blobErr.message : String(blobErr));
+    }
 
     const isPdf = file.type === "application/pdf";
     const mediaType = isPdf
@@ -148,7 +154,7 @@ Solo responde con el JSON, sin explicaciones adicionales.`,
       category: ocrData.category.toLowerCase(),
       currency: ocrData.currency.toUpperCase(),
       description: ocrData.description || "Gasto",
-      receiptUrl: blob.url,
+      receiptUrl: blobUrl ?? "",
     };
 
     return NextResponse.json(result);
