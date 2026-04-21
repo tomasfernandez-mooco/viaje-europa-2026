@@ -1,6 +1,8 @@
 name: Setup Vercel Blob Store
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:

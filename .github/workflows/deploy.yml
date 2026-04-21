@@ -58,7 +58,17 @@ print('yes' if any(e.get('key') == 'BLOB_READ_WRITE_TOKEN' for e in d.get('envs'
 
           if [ "$BLOB_EXISTS" = "no" ]; then
             echo "Creating Vercel Blob store..."
-            curl -s -X POST "https://api.vercel.com/v1/storage/stores" \
+            # Get team/account ID from project
+            curl -s "https://api.vercel.com/v9/projects/$PROJECT_ID" \
+              -H "Authorization: Bearer $VT" -o /tmp/project.json
+            TEAM_ID=$(python3 -c "
+import json
+with open('/tmp/project.json') as f:
+    d = json.load(f)
+print(d.get('accountId',''))
+" 2>/dev/null)
+            echo "Account ID: $TEAM_ID"
+            curl -s -X POST "https://api.vercel.com/v1/storage/stores?teamId=$TEAM_ID" \
               -H "Authorization: Bearer $VT" \
               -H "Content-Type: application/json" \
               -d '{"name":"europa-2026-blob","type":"blobstore"}' \
