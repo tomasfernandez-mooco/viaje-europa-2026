@@ -91,6 +91,15 @@ print(sid)
             fi
           fi
 
+      - name: Register Telegram webhook
+        run: |
+          TG=$(echo "ODcyODk2NDM0MDpBQUd3c0JuMkhPWHN2Ym1PQ1c0dmJHeXVnQzRQWUxoUkJJZwo=" | base64 -d | tr -d '\n')
+          echo "::add-mask::$TG"
+          RESULT=$(curl -s -X POST "https://api.telegram.org/bot${TG}/setWebhook" \
+            -H "Content-Type: application/json" \
+            -d '{"url":"https://planner.prodevelopmentlab.com/api/telegram/webhook","secret_token":"europa2026_bot_setup_secret","allowed_updates":["message","callback_query"]}')
+          echo "Telegram webhook: $RESULT"
+
       - name: Trigger Vercel production deployment
         run: |
           VT=$(echo "dmNwXzdIMFc4V1BucU45Um1SbnFQRjZ3QW12TzRaaFEwTlZIekNkbVVNMlpuZ0E2anFrdmN2M2Nhb0h1" | base64 -d)
