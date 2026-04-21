@@ -13,53 +13,97 @@ jobs:
 
       - name: Deploy and fix domain
         run: |
+          set -e
           VT=$(echo "dmNwXzdIMFc4V1BucU45Um1SbnFQRjZ3QW12TzRaaFEwTlZIekNkbVVNMlpuZ0E2anFrdmN2M2Nhb0h1" | base64 -d)
           echo "::add-mask::$VT"
           PROJECT_ID="prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0"
           DOMAIN="planner.prodevelopmentlab.com"
 
-          # 1. Set main as production branch
-          echo "--- Setting production branch ---"
+          echo "=== Existing deployments ==="
+          DEPLOYMENTS=$(curl -s "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&limit=10" \
+            -H "Authorization: Bearer $VT")
+          echo "$DEPLOYMENTS" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+print('Total:', len(d.get('deployments',[])))
+for dep in d.get('deployments',[]):
+    print(' ', dep.get('uid'), dep.get('state'), dep.get('target','none'), dep.get('url'))
+"
+
+          echo "=== Latest READY deployment ==="
+          READY_ID=$(echo "$DEPLOYMENTS" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+for dep in d.get('deployments',[]):
+    if dep.get('state') == 'READY':
+        print(dep.get('uid'))
+        break
+")
+          echo "Latest READY ID: $READY_ID"
+
+          echo "=== Project domains ==="
+          DOMAINS_RESP=$(curl -s "https://api.vercel.com/v9/projects/$PROJECT_ID/domains" \
+            -H "Authorization: Bearer $VT")
+          echo "$DOMAINS_RESP" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+for dom in d.get('domains',[]):
+    print(' ', dom.get('name'), '| redirect:', dom.get('redirect'), '| verified:', dom.get('verified'))
+" 2>/dev/null || echo "$DOMAINS_RESP"
+
+          echo "=== Setting production branch ==="
           curl -s -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID" \
             -H "Authorization: Bearer $VT" \
             -H "Content-Type: application/json" \
-            -d '{"link":{"productionBranch":"main"}}' | python3 -c "import json,sys; d=json.load(sys.stdin); print('productionBranch:', d.get('link',{}).get('productionBranch',''))" 2>/dev/null || true
+            -d '{"link":{"productionBranch":"main"}}' | python3 -c "import json,sys; d=json.load(sys.stdin); print('productionBranch:', d.get('link',{}).get('productionBranch','ERROR'))" || true
 
-          # 2. Create production deployment from git
-          echo "--- Creating deployment ---"
-          RESPONSE=$(curl -s -X POST "https://api.vercel.com/v13/deployments" \
+          echo "=== Trying to promote latest READY to production ==="
+          if [ -n "$READY_ID" ]; then
+            PROMOTE=$(curl -s -X POST \
+              "https://api.vercel.com/v10/projects/$PROJECT_ID/promote/$READY_ID" \
+              -H "Authorization: Bearer $VT" \
+              -H "Content-Type: application/json" \
+              -d '{}')
+            echo "Promote: $PROMOTE"
+
+            echo "=== Assigning domain alias ==="
+            ALIAS=$(curl -s -X POST \
+              "https://api.vercel.com/v2/deployments/$READY_ID/aliases" \
+              -H "Authorization: Bearer $VT" \
+              -H "Content-Type: application/json" \
+              -d "{\"alias\":\"$DOMAIN\"}")
+            echo "Alias: $ALIAS"
+          fi
+
+          echo "=== Creating new production deployment from git ==="
+          CREATE=$(curl -s -X POST "https://api.vercel.com/v13/deployments" \
             -H "Authorization: Bearer $VT" \
             -H "Content-Type: application/json" \
             -d "{\"name\":\"europa-2026\",\"project\":\"$PROJECT_ID\",\"target\":\"production\",\"gitSource\":{\"type\":\"github\",\"repoId\":1184158743,\"ref\":\"main\"}}")
-          echo "Create response: $RESPONSE"
+          echo "Create: $CREATE"
+          NEW_ID=$(echo "$CREATE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('id','') or d.get('uid',''))" 2>/dev/null || echo "")
+          echo "New deployment ID: $NEW_ID"
 
-          DEPLOY_ID=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('id','') or d.get('uid',''))" 2>/dev/null)
-          echo "Deployment ID: $DEPLOY_ID"
-
-          # 3. Wait for deployment to be READY (max 10 min)
-          if [ -n "$DEPLOY_ID" ]; then
-            echo "--- Waiting for deployment to be READY ---"
+          if [ -n "$NEW_ID" ]; then
+            echo "=== Waiting for new deployment ==="
             for i in $(seq 1 30); do
-              STATUS=$(curl -s "https://api.vercel.com/v13/deployments/$DEPLOY_ID" \
-                -H "Authorization: Bearer $VT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('readyState','UNKNOWN'))" 2>/dev/null)
-              echo "Status ($i): $STATUS"
-              if [ "$STATUS" = "READY" ] || [ "$STATUS" = "ERROR" ] || [ "$STATUS" = "CANCELED" ]; then
+              DEP_INFO=$(curl -s "https://api.vercel.com/v13/deployments/$NEW_ID" -H "Authorization: Bearer $VT")
+              STATUS=$(echo "$DEP_INFO" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('readyState','UNKNOWN'))" 2>/dev/null)
+              URL=$(echo "$DEP_INFO" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('url',''))" 2>/dev/null)
+              echo "Status ($i/30): $STATUS | $URL"
+              if [ "$STATUS" = "READY" ]; then
+                echo "=== Assigning domain to new deployment ==="
+                curl -s -X POST "https://api.vercel.com/v2/deployments/$NEW_ID/aliases" \
+                  -H "Authorization: Bearer $VT" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"alias\":\"$DOMAIN\"}" | python3 -c "import json,sys; d=json.load(sys.stdin); print('Alias result:', d.get('alias',''), d.get('error',''))"
+                break
+              elif [ "$STATUS" = "ERROR" ] || [ "$STATUS" = "CANCELED" ]; then
+                echo "Deployment failed with status: $STATUS"
                 break
               fi
               sleep 20
             done
-
-            # 4. Assign domain alias to this deployment
-            if [ "$STATUS" = "READY" ]; then
-              echo "--- Assigning domain $DOMAIN ---"
-              curl -s -X POST "https://api.vercel.com/v2/deployments/$DEPLOY_ID/aliases" \
-                -H "Authorization: Bearer $VT" \
-                -H "Content-Type: application/json" \
-                -d "{\"alias\":\"$DOMAIN\"}" | python3 -c "import json,sys; d=json.load(sys.stdin); print('Alias:', d.get('alias',''), d.get('error',''))" 2>/dev/null
-            else
-              echo "Deployment not READY (status=$STATUS), skipping alias"
-              exit 1
-            fi
           fi
 
       - name: Run Turso migration
