@@ -11,41 +11,61 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure Vercel production branch + deploy
+      - name: Deploy and fix domain
         run: |
           VT=$(echo "dmNwXzdIMFc4V1BucU45Um1SbnFQRjZ3QW12TzRaaFEwTlZIekNkbVVNMlpuZ0E2anFrdmN2M2Nhb0h1" | base64 -d)
           echo "::add-mask::$VT"
+          PROJECT_ID="prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0"
+          DOMAIN="planner.prodevelopmentlab.com"
 
-          # Set main as production branch (fix permanent — after this Vercel auto-deploys on push to main)
-          curl -s -X PATCH "https://api.vercel.com/v9/projects/prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0" \
+          # 1. Set main as production branch
+          echo "--- Setting production branch ---"
+          curl -s -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID" \
             -H "Authorization: Bearer $VT" \
             -H "Content-Type: application/json" \
-            -d '{"link": {"productionBranch": "main"}}' | python3 -c "import json,sys; d=json.load(sys.stdin); print('Branch config:', d.get('link',{}).get('productionBranch',''))" 2>/dev/null || true
+            -d '{"link":{"productionBranch":"main"}}' | python3 -c "import json,sys; d=json.load(sys.stdin); print('productionBranch:', d.get('link',{}).get('productionBranch',''))" 2>/dev/null || true
 
-          # Trigger production deployment via REST API
+          # 2. Create production deployment from git
+          echo "--- Creating deployment ---"
           RESPONSE=$(curl -s -X POST "https://api.vercel.com/v13/deployments" \
             -H "Authorization: Bearer $VT" \
             -H "Content-Type: application/json" \
-            -d '{
-              "name": "europa-2026",
-              "project": "prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0",
-              "target": "production",
-              "gitSource": {
-                "type": "github",
-                "repoId": 1184158743,
-                "ref": "main"
-              }
-            }')
+            -d "{\"name\":\"europa-2026\",\"project\":\"$PROJECT_ID\",\"target\":\"production\",\"gitSource\":{\"type\":\"github\",\"repoId\":1184158743,\"ref\":\"main\"}}")
+          echo "Create response: $RESPONSE"
 
-          echo "Response: $RESPONSE"
-          DEPLOY_URL=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('url',''))" 2>/dev/null || echo "")
-          echo "Deployment URL: https://$DEPLOY_URL"
+          DEPLOY_ID=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('id','') or d.get('uid',''))" 2>/dev/null)
+          echo "Deployment ID: $DEPLOY_ID"
+
+          # 3. Wait for deployment to be READY (max 10 min)
+          if [ -n "$DEPLOY_ID" ]; then
+            echo "--- Waiting for deployment to be READY ---"
+            for i in $(seq 1 30); do
+              STATUS=$(curl -s "https://api.vercel.com/v13/deployments/$DEPLOY_ID" \
+                -H "Authorization: Bearer $VT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('readyState','UNKNOWN'))" 2>/dev/null)
+              echo "Status ($i): $STATUS"
+              if [ "$STATUS" = "READY" ] || [ "$STATUS" = "ERROR" ] || [ "$STATUS" = "CANCELED" ]; then
+                break
+              fi
+              sleep 20
+            done
+
+            # 4. Assign domain alias to this deployment
+            if [ "$STATUS" = "READY" ]; then
+              echo "--- Assigning domain $DOMAIN ---"
+              curl -s -X POST "https://api.vercel.com/v2/deployments/$DEPLOY_ID/aliases" \
+                -H "Authorization: Bearer $VT" \
+                -H "Content-Type: application/json" \
+                -d "{\"alias\":\"$DOMAIN\"}" | python3 -c "import json,sys; d=json.load(sys.stdin); print('Alias:', d.get('alias',''), d.get('error',''))" 2>/dev/null
+            else
+              echo "Deployment not READY (status=$STATUS), skipping alias"
+              exit 1
+            fi
+          fi
 
       - name: Run Turso migration
         run: |
           TT=$(echo "ZXlKaGJHY2lPaUpGWkVSVFFTSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmhJam9pY25jaUxDSnBZWFFpT2pFM056WTNNVEl4T1Rrc0ltbGtJam9pTURFNVkyWmhNekl0Tmpnd01TMDNNR1ZpTFdJM05UQXROemd3TkRBeE4yUTJOR1ZtSWl3aWNtbGtJam9pTmpVelpHTmlNall0WW1Ka015MDBNR0l3TFRrMFlqTXROREZsWldFd1l6ZGlZbUl3SW4wLmI4V2NXNFBkQWVKbC1wNWxiZVVjMHpCb0Q4cUJ3OUttZ042c2FPRTYxbEFBcmZOMXNMX21mdkVRckQ5Tm5aU2JpU1o3dU43cHdWdHhtbVdmZFExZ0JR" | base64 -d)
           echo "::add-mask::$TT"
-
           RESULT=$(curl -s -X POST \
             "https://viaje-europa-2026-tomasfernandez-mooco.aws-us-east-1.turso.io/v2/pipeline" \
             -H "Authorization: Bearer $TT" \
