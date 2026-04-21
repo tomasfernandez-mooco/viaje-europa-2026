@@ -11,6 +11,86 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Configure Vercel environment variables
+        run: |
+          VT=$(echo "dmNwXzdIMFc4V1BucU45Um1SbnFQRjZ3QW12TzRaaFEwTlZIekNkbVVNMlpuZ0E2anFrdmN2M2Nhb0h1" | base64 -d)
+          echo "::add-mask::$VT"
+          PROJECT_ID="prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0"
+
+          # Fetch current env vars
+          curl -s "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
+            -H "Authorization: Bearer $VT" -o /tmp/envs.json
+
+          # --- Fix NEXT_PUBLIC_APP_URL ---
+          APP_URL_ID=$(python3 -c "
+import json
+with open('/tmp/envs.json') as f:
+    d = json.load(f)
+for e in d.get('envs', []):
+    if e.get('key') == 'NEXT_PUBLIC_APP_URL':
+        print(e.get('id', ''))
+        break
+" 2>/dev/null)
+
+          NEW_URL="https://planner.prodevelopmentlab.com"
+          if [ -n "$APP_URL_ID" ]; then
+            curl -s -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID/env/$APP_URL_ID" \
+              -H "Authorization: Bearer $VT" \
+              -H "Content-Type: application/json" \
+              -d "{\"value\":\"$NEW_URL\",\"target\":[\"production\"],\"type\":\"plain\"}" | \
+              python3 -c "import json,sys; d=json.load(sys.stdin); print('NEXT_PUBLIC_APP_URL updated to', d.get('value','?'))" 2>/dev/null
+          else
+            curl -s -X POST "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
+              -H "Authorization: Bearer $VT" \
+              -H "Content-Type: application/json" \
+              -d "[{\"key\":\"NEXT_PUBLIC_APP_URL\",\"value\":\"$NEW_URL\",\"target\":[\"production\"],\"type\":\"plain\"}]"
+            echo "NEXT_PUBLIC_APP_URL created"
+          fi
+
+          # --- Check / create BLOB_READ_WRITE_TOKEN ---
+          BLOB_EXISTS=$(python3 -c "
+import json
+with open('/tmp/envs.json') as f:
+    d = json.load(f)
+print('yes' if any(e.get('key') == 'BLOB_READ_WRITE_TOKEN' for e in d.get('envs', [])) else 'no')
+" 2>/dev/null)
+          echo "BLOB_READ_WRITE_TOKEN present: $BLOB_EXISTS"
+
+          if [ "$BLOB_EXISTS" = "no" ]; then
+            echo "Creating Vercel Blob store..."
+            curl -s -X POST "https://api.vercel.com/v1/storage/stores" \
+              -H "Authorization: Bearer $VT" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"europa-2026-blob","type":"blobstore"}' \
+              -o /tmp/store.json
+
+            python3 -c "
+import json
+with open('/tmp/store.json') as f:
+    d = json.load(f)
+print('Store API response:', json.dumps(d, indent=2)[:600])
+" 2>/dev/null
+
+            STORE_ID=$(python3 -c "
+import json
+with open('/tmp/store.json') as f:
+    d = json.load(f)
+sid = (d.get('store') or {}).get('id') or d.get('id') or ''
+print(sid)
+" 2>/dev/null)
+
+            if [ -n "$STORE_ID" ]; then
+              echo "Blob store created: $STORE_ID — connecting to project..."
+              curl -s -X POST "https://api.vercel.com/v1/storage/stores/$STORE_ID/connections" \
+                -H "Authorization: Bearer $VT" \
+                -H "Content-Type: application/json" \
+                -d "{\"projectId\":\"$PROJECT_ID\",\"environments\":[\"production\",\"preview\",\"development\"]}" | \
+                python3 -c "import json,sys; d=json.load(sys.stdin); print('Connect response:', json.dumps(d, indent=2)[:400])" 2>/dev/null
+            else
+              echo "⚠️  Blob store creation failed — see response above. Create manually: Vercel dashboard → Storage → Create Blob store → Connect to europa-2026"
+            fi
+          fi
+
       - name: Trigger Vercel production deployment
         run: |
           VT=$(echo "dmNwXzdIMFc4V1BucU45Um1SbnFQRjZ3QW12TzRaaFEwTlZIekNkbVVNMlpuZ0E2anFrdmN2M2Nhb0h1" | base64 -d)
