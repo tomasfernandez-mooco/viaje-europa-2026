@@ -128,9 +128,11 @@ Solo responde con el JSON, sin explicaciones adicionales.`,
 
     let ocrData;
     try {
-      ocrData = JSON.parse(responseText);
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("No JSON in response");
+      ocrData = JSON.parse(jsonMatch[0]);
     } catch (parseError) {
-      console.error(`[OCR-GASTO] JSON parse error:`, parseError);
+      console.error(`[OCR-GASTO] JSON parse error. Response was: ${responseText.substring(0, 300)}`);
       return NextResponse.json(
         { error: "No se pudo procesar la respuesta del OCR. Asegúrate que la imagen es clara y legible." },
         { status: 400 }

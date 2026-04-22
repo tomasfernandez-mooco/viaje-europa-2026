@@ -112,7 +112,9 @@ Responde SOLO con el JSON.`,
 
     let extractedData;
     try {
-      extractedData = JSON.parse(content.text);
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("No JSON in response");
+      extractedData = JSON.parse(jsonMatch[0]);
     } catch {
       console.error("Failed to parse OCR response:", content.text);
       return NextResponse.json(

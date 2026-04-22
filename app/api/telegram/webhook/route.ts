@@ -290,6 +290,7 @@ async function handleOCR(chatId: string, fileId: string, userId: string, type: s
   try {
     const imageBytes = await downloadFile(fileId);
     const base64 = imageBytes.toString("base64");
+    const isPdf = imageBytes.slice(0, 4).toString() === "%PDF";
 
     const OCR_PROMPT_RESERVA = `Extract travel reservation data from this voucher image. Return ONLY valid JSON:
 {
@@ -324,7 +325,9 @@ async function handleOCR(chatId: string, fileId: string, userId: string, type: s
         {
           role: "user",
           content: [
-            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64 } },
+            isPdf
+              ? { type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64 } }
+              : { type: "image" as const, source: { type: "base64" as const, media_type: "image/jpeg" as const, data: base64 } },
             { type: "text", text: prompt },
           ],
         },
