@@ -15,7 +15,15 @@ type Expense = {
   paidByTravelerId?: string | null;
   splitBetween?: string | null;
   splitType?: string | null;
+  itineraryItemId?: string | null;
   createdAt: string;
+};
+
+type ItineraryItemSummary = {
+  id: string;
+  date: string;
+  title: string;
+  city: string;
 };
 
 type Traveler = {
@@ -33,7 +41,7 @@ const CAT_COLORS: Record<string, string> = { alojamiento: "bg-blue-500", comida:
 const CURRENCIES = ["EUR","USD","ARS","GBP","CZK","HUF","PLN","RON","HRK"];
 const TRAVELER_COLORS = ["#6366f1","#f59e0b","#10b981","#ef4444","#3b82f6","#ec4899","#8b5cf6","#14b8a6"];
 
-type Props = { tripId: string; expenses: Expense[]; tcEurUsd?: number; travelers: Traveler[] };
+type Props = { tripId: string; expenses: Expense[]; tcEurUsd?: number; travelers: Traveler[]; itineraryItems?: ItineraryItemSummary[] };
 
 // ─── Debt calculation (Splitwise-style) ──────────────────
 type Transfer = { from: string; to: string; amount: number };
@@ -79,12 +87,12 @@ function calcDebts(expenses: Expense[], travelers: Traveler[]): Transfer[] {
   return transfers;
 }
 
-export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd = 1.08, travelers: initialTravelers }: Props) {
+export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd = 1.08, travelers: initialTravelers, itineraryItems = [] }: Props) {
   const [expenses, setExpenses] = useState(initial);
   const [travelers, setTravelers] = useState<Traveler[]>(initialTravelers);
 
   // ── expense form ──
-  const defaultForm = { category: "comida", amount: "", currency: "EUR", description: "", date: new Date().toISOString().split("T")[0], paidByTravelerId: "", splitBetween: [] as string[] };
+  const defaultForm = { category: "comida", amount: "", currency: "EUR", description: "", date: new Date().toISOString().split("T")[0], paidByTravelerId: "", splitBetween: [] as string[], itineraryItemId: "" };
   const [form, setForm] = useState(defaultForm);
   const [saving, setSaving] = useState(false);
   const [filterCat, setFilterCat] = useState("todas");
@@ -139,13 +147,13 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) { setSelectedFile(file); setUploadStatus(""); }
+    if (file) { setSelectedFile(file); setUploadStatus(""); setReceiptUrl(""); }
   };
 
   const handleUpload = async () => {
     if (!selectedFile) return;
     try {
-      setUploadStatus("⏳ Procesando recibo...");
+      setUploadStatus("⏳ Procesando recibo con IA...");
       const formData = new FormData();
       formData.append("file", selectedFile);
       const response = await fetch("/api/ocr/gasto", { method: "POST", body: formData });
@@ -155,7 +163,6 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
       }
       const ocrResult = await response.json();
 
-      // Pre-fill form with extracted data
       setForm(f => ({
         ...f,
         amount: String(ocrResult.amount),
@@ -165,9 +172,14 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
         date: ocrResult.date,
       }));
 
-      setReceiptUrl(ocrResult.receiptUrl);
-      setUploadStatus("✅ Datos extraídos del recibo");
-      setSelectedFile(null);
+      if (ocrResult.receiptUrl) {
+        setReceiptUrl(ocrResult.receiptUrl);
+        setSelectedFile(null);
+        setUploadStatus("✅ Datos extraídos y archivo adjuntado");
+      } else {
+        // OCR worked but blob upload failed — file will be uploaded at save time
+        setUploadStatus("✅ Datos extraídos. El comprobante se adjuntará al guardar.");
+      }
     } catch (error) {
       setUploadStatus(`❌ ${error instanceof Error ? error.message : "Error al procesar"}`);
       console.error(error);
@@ -179,6 +191,24 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
     if (!form.amount) return;
     setSaving(true);
     const amountUSD = toUSD(Number(form.amount), form.currency);
+
+    let finalReceiptUrl = receiptUrl || undefined;
+
+    // If we have a pending file (OCR ran but blob upload failed), upload it now
+    if (selectedFile && !receiptUrl) {
+      try {
+        const uploadFd = new FormData();
+        uploadFd.append("file", selectedFile);
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: uploadFd });
+        if (uploadRes.ok) {
+          const { url } = await uploadRes.json();
+          finalReceiptUrl = url;
+        }
+      } catch {
+        // Upload failed — save expense without receipt
+      }
+    }
+
     const res = await fetch(`/api/trips/${tripId}/expenses`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -186,16 +216,18 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
         ...form,
         amount: Number(form.amount),
         amountUSD,
-        receiptUrl: receiptUrl || undefined,
+        receiptUrl: finalReceiptUrl,
         paidByTravelerId: form.paidByTravelerId || null,
         splitBetween: form.splitBetween.length > 0 ? form.splitBetween : null,
         splitType: "equal",
+        itineraryItemId: form.itineraryItemId || null,
       }),
     });
     const created = await res.json();
     setExpenses(prev => [created, ...prev]);
-    setForm(f => ({ ...f, amount: "", description: "", paidByTravelerId: "", splitBetween: [] }));
+    setForm(f => ({ ...f, amount: "", description: "", paidByTravelerId: "", splitBetween: [], itineraryItemId: "" }));
     setReceiptUrl("");
+    setSelectedFile(null);
     setUploadStatus("");
     setSaving(false);
   }
@@ -218,6 +250,7 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
         paidByTravelerId: editForm.paidByTravelerId || null,
         splitBetween: editForm.splitBetween.length > 0 ? editForm.splitBetween : null,
         splitType: "equal",
+        itineraryItemId: editForm.itineraryItemId || null,
       }),
     });
     const updated = await res.json();
@@ -496,6 +529,19 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
                 </>
               )}
 
+              {/* Itinerary item link */}
+              {itineraryItems.length > 0 && (
+                <div>
+                  <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Vincular al itinerario (opcional)</label>
+                  <select value={form.itineraryItemId} onChange={e => setForm(f => ({ ...f, itineraryItemId: e.target.value }))} className={`${inputCls} w-full`}>
+                    <option value="">— Sin vincular —</option>
+                    {itineraryItems.map(item => (
+                      <option key={item.id} value={item.id}>{item.date} · {item.title} ({item.city})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* File upload */}
               <div>
                 <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Recibo (opcional)</label>
@@ -511,7 +557,7 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
                   {uploadStatus}
                 </div>
               )}
-              {receiptUrl && (
+              {receiptUrl ? (
                 <div className="relative">
                   {receiptUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                     <img src={receiptUrl} alt="Receipt" style={{maxWidth: "200px", borderRadius: "0.75rem"}} className="border border-c-border" />
@@ -519,7 +565,11 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
                     <a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-accent underline hover:text-terra-500">📄 Ver Recibo PDF</a>
                   )}
                 </div>
-              )}
+              ) : selectedFile && uploadStatus.includes("✅") ? (
+                <div className="text-xs text-c-muted py-1 px-2 bg-white/5 rounded-xl">
+                  📎 {selectedFile.name} — se adjuntará al guardar
+                </div>
+              ) : null}
 
               <button type="submit" disabled={saving || !form.amount} className="w-full py-2.5 bg-accent text-white rounded-2xl text-sm font-medium hover:bg-terra-500 transition-colors disabled:opacity-50">
                 {saving ? "Guardando..." : "+ Agregar gasto"}
@@ -590,6 +640,14 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
                                   </div>
                                 </>
                               )}
+                              {itineraryItems.length > 0 && (
+                                <select value={editForm.itineraryItemId} onChange={e => setEditForm(f => f ? {...f, itineraryItemId: e.target.value} : f)} className={`${inputCls} w-full`}>
+                                  <option value="">— Sin vincular al itinerario —</option>
+                                  {itineraryItems.map(item => (
+                                    <option key={item.id} value={item.id}>{item.date} · {item.title} ({item.city})</option>
+                                  ))}
+                                </select>
+                              )}
                               <div className="flex gap-2">
                                 <button onClick={() => handleSaveEdit(exp.id)} className="flex-1 py-1.5 bg-accent text-white rounded-xl text-xs font-medium">Guardar</button>
                                 <button onClick={() => { setEditingId(null); setEditForm(null); }} className="px-4 py-1.5 text-xs text-c-muted border border-c-border rounded-xl">Cancelar</button>
@@ -614,18 +672,28 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
                                   <button onClick={() => {
                                     const splitArr = exp.splitBetween ? JSON.parse(exp.splitBetween) : [];
                                     setEditingId(exp.id);
-                                    setEditForm({ category: exp.category, amount: String(exp.amount), currency: exp.currency, description: exp.description ?? "", date: exp.date, paidByTravelerId: exp.paidByTravelerId ?? "", splitBetween: splitArr });
+                                    setEditForm({ category: exp.category, amount: String(exp.amount), currency: exp.currency, description: exp.description ?? "", date: exp.date, paidByTravelerId: exp.paidByTravelerId ?? "", splitBetween: splitArr, itineraryItemId: exp.itineraryItemId ?? "" });
                                   }} className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-lg transition-colors">Editar</button>
                                   <button onClick={() => handleDelete(exp.id)} className="text-xs text-c-subtle hover:text-red-500 opacity-0 group-hover:opacity-100 px-2 py-1 rounded-lg transition-all">Eliminar</button>
                                 </div>
                               </div>
-                              {exp.receiptUrl && (
-                                <div className="mt-2 pt-2 border-t border-white/10">
-                                  {exp.receiptUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                    <img src={exp.receiptUrl} alt="Receipt" style={{maxWidth: "150px", borderRadius: "0.5rem"}} className="border border-c-border cursor-pointer hover:opacity-80 transition-opacity" onClick={() => window.open(exp.receiptUrl!, "_blank")} />
-                                  ) : (
-                                    <a href={exp.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-accent underline hover:text-terra-500">📄 Ver Recibo</a>
+                              {(exp.receiptUrl || exp.itineraryItemId) && (
+                                <div className="mt-2 pt-2 border-t border-white/10 flex flex-wrap items-center gap-3">
+                                  {exp.receiptUrl && (
+                                    exp.receiptUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                      <img src={exp.receiptUrl} alt="Receipt" style={{maxWidth: "150px", borderRadius: "0.5rem"}} className="border border-c-border cursor-pointer hover:opacity-80 transition-opacity" onClick={() => window.open(exp.receiptUrl!, "_blank")} />
+                                    ) : (
+                                      <a href={exp.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-accent underline hover:text-terra-500">📄 Ver Recibo</a>
+                                    )
                                   )}
+                                  {exp.itineraryItemId && (() => {
+                                    const item = itineraryItems.find(i => i.id === exp.itineraryItemId);
+                                    return item ? (
+                                      <span className="text-[10px] text-c-muted bg-white/10 px-2 py-0.5 rounded-full">
+                                        📅 {item.date} · {item.title}
+                                      </span>
+                                    ) : null;
+                                  })()}
                                 </div>
                               )}
                             </div>
@@ -654,9 +722,9 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
                       className="group relative bg-black/10 dark:bg-white/5 rounded-xl overflow-hidden cursor-pointer hover:ring-2 ring-accent transition-all"
                       onClick={() => setPreviewUrl(exp.receiptUrl!)}
                     >
-                      {exp.receiptUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                      {exp.receiptUrl?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                         <img
-                          src={exp.receiptUrl}
+                          src={exp.receiptUrl ?? undefined}
                           alt="Receipt thumbnail"
                           className="w-full h-32 object-cover group-hover:opacity-80 transition-opacity"
                         />
@@ -792,9 +860,14 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
                       description: data.description,
                       date: data.date,
                     }));
-                    setReceiptUrl(data.receiptUrl);
+                    if (data.receiptUrl) {
+                      setReceiptUrl(data.receiptUrl);
+                      setImportFile(null);
+                    } else {
+                      // Keep importFile so it can be uploaded at save time
+                      setSelectedFile(importFile);
+                    }
                     setImportStatus("✅ Comprobante analizado. El form se actualizó. Cerrá el modal para ver.");
-                    setImportFile(null);
                   } catch (error) {
                     console.error("OCR error:", error);
                     setImportStatus(`❌ Error: ${error instanceof Error ? error.message : "Error desconocido"}`);

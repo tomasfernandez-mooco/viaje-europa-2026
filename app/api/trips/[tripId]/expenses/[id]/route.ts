@@ -21,6 +21,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trip
       paidByTravelerId: body.paidByTravelerId ?? null,
       splitBetween: body.splitBetween ? JSON.stringify(body.splitBetween) : null,
       splitType: body.splitType ?? "equal",
+      itineraryItemId: body.itineraryItemId ?? null,
     },
   });
   return NextResponse.json(expense);

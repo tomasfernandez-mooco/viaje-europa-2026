@@ -19,6 +19,12 @@ jobs:
           echo "::add-mask::$BT"
           PROJECT_ID="prj_BIWSCnzhId6TRPVi4DuhlC1Pu4Q0"
 
+          # Set main as production branch
+          curl -s -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID" \
+            -H "Authorization: Bearer $VT" \
+            -H "Content-Type: application/json" \
+            -d '{"link": {"productionBranch": "main"}}' | python3 -c "import json,sys; d=json.load(sys.stdin); print('Branch config:', d.get('link',{}).get('productionBranch',''))" 2>/dev/null || true
+
           # Fetch current env vars
           curl -s "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
             -H "Authorization: Bearer $VT" -o /tmp/envs.json
@@ -77,9 +83,17 @@ for e in d.get('envs', []):
         run: |
           TT=$(echo "ZXlKaGJHY2lPaUpGWkVSVFFTSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmhJam9pY25jaUxDSnBZWFFpT2pFM056WTNNVEl4T1Rrc0ltbGtJam9pTURFNVkyWmhNekl0Tmpnd01TMDNNR1ZpTFdJM05UQXROemd3TkRBeE4yUTJOR1ZtSWl3aWNtbGtJam9pTmpVelpHTmlNall0WW1Ka015MDBNR0l3TFRrMFlqTXROREZsWldFd1l6ZGlZbUl3SW4wLmI4V2NXNFBkQWVKbC1wNWxiZVVjMHpCb0Q4cUJ3OUttZ042c2FPRTYxbEFBcmZOMXNMX21mdkVRckQ5Tm5aU2JpU1o3dU43cHdWdHhtbVdmZFExZ0JR" | base64 -d)
           echo "::add-mask::$TT"
-          RESULT=$(curl -s -X POST \
-            "https://viaje-europa-2026-tomasfernandez-mooco.aws-us-east-1.turso.io/v2/pipeline" \
-            -H "Authorization: Bearer $TT" \
-            -H "Content-Type: application/json" \
-            -d '{"requests":[{"type":"execute","stmt":{"sql":"ALTER TABLE \"trips\" ADD COLUMN \"deletedAt\" DATETIME"}},{"type":"close"}]}')
-          echo "Turso: $RESULT"
+
+          run_migration() {
+            local SQL="$1"
+            local LABEL="$2"
+            RESULT=$(curl -s -X POST \
+              "https://viaje-europa-2026-tomasfernandez-mooco.aws-us-east-1.turso.io/v2/pipeline" \
+              -H "Authorization: Bearer $TT" \
+              -H "Content-Type: application/json" \
+              -d "{\"requests\":[{\"type\":\"execute\",\"stmt\":{\"sql\":\"$SQL\"}},{\"type\":\"close\"}]}")
+            echo "Migration [$LABEL]: $RESULT"
+          }
+
+          run_migration "ALTER TABLE \"trips\" ADD COLUMN \"deletedAt\" DATETIME" "trips.deletedAt"
+          run_migration "ALTER TABLE \"expenses\" ADD COLUMN \"itineraryItemId\" TEXT" "expenses.itineraryItemId"

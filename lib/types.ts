@@ -106,6 +106,7 @@ export type Expense = {
   paidByTravelerId?: string | null;
   splitBetween?: string | null; // JSON array of traveler IDs
   splitType?: string | null;    // "equal" | "custom"
+  itineraryItemId?: string | null;
   createdAt: string;
 };
 

@@ -128,7 +128,8 @@ model ItineraryItem {
   orderIndex    Int      @default(0)
   createdAt     DateTime @default(now())
 
-  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  expenses Expense[]
 
   @@map("itinerary_items")
 }
@@ -181,10 +182,12 @@ model Expense {
   paidByTravelerId  String?
   splitBetween      String?
   splitType         String    @default("equal")
+  itineraryItemId   String?
   createdAt         DateTime  @default(now())
 
-  trip   Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  paidBy Traveler? @relation("ExpensePaidBy", fields: [paidByTravelerId], references: [id], onDelete: SetNull)
+  trip          Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  paidBy        Traveler?      @relation("ExpensePaidBy", fields: [paidByTravelerId], references: [id], onDelete: SetNull)
+  itineraryItem ItineraryItem? @relation(fields: [itineraryItemId], references: [id], onDelete: SetNull)
 
   @@map("expenses")
 }
