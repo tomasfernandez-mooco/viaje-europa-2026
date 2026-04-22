@@ -75,6 +75,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tri
       }
     }
 
+    // Extract itineraryItemId from JSON body if provided
+    let itineraryItemId: string | undefined;
+    if (expenseData.itineraryItemId) {
+      itineraryItemId = expenseData.itineraryItemId;
+      delete expenseData.itineraryItemId;
+    }
+
     // Create expense
     const expense = await prisma.expense.create({
       data: {
@@ -93,6 +100,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tri
           ? JSON.stringify(expenseData.splitBetween)
           : null,
         splitType: expenseData.splitType ?? "equal",
+        itineraryItemId: itineraryItemId ?? null,
       },
     });
 
