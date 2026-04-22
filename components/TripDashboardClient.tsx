@@ -116,42 +116,16 @@ export default function TripDashboardClient({ trip, reservations, config, locati
         </div>
       )}
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+      {/* Quick stats — right below hero */}
+      <div className="grid grid-cols-3 gap-4 animate-fade-in" style={{ animationDelay: "0.05s" }}>
         {[
-          {
-            label: "Dias para el viaje",
-            value: daysLeft > 0 ? String(daysLeft) : daysLeft === 0 ? "Hoy!" : "En curso",
-            sub: daysLeft > 0 ? formatDateShort(trip.startDate) : "",
-            highlight: true,
-            icon: "✈️"
-          },
-          {
-            label: "Presupuesto",
-            value: `$${presupuestoTotal.toLocaleString()}`,
-            sub: "USD total",
-            highlight: false,
-            icon: "💰"
-          },
-          {
-            label: "Estimado actual",
-            value: `$${totalCost.toLocaleString()}`,
-            sub: `${Math.round((totalCost / presupuestoTotal) * 100)}% del presupuesto`,
-            highlight: totalCost > presupuestoTotal,
-            icon: "📊"
-          },
-          {
-            label: "Alertas activas",
-            value: String(conAlerta.length),
-            sub: conAlerta.length > 0 ? "requieren atención" : "todo en orden",
-            highlight: conAlerta.length > 0,
-            icon: conAlerta.length > 0 ? "⚠️" : "✅"
-          },
-        ].map((kpi) => (
-          <div key={kpi.label} className="glass-card glass-card-hover rounded-2xl p-5 hover:-translate-y-0.5 transition-all duration-300">
-            <p className="text-[11px] text-c-muted uppercase tracking-wider font-medium">{kpi.label}</p>
-            <p className={`text-2xl md:text-3xl font-display font-bold mt-1.5 ${kpi.highlight ? "text-accent" : "text-c-heading"}`}>{kpi.value}</p>
-            {kpi.sub && <p className="text-xs text-c-muted mt-0.5">{kpi.sub}</p>}
+          { value: locationCount, label: "destinos" },
+          { value: reservations.length, label: "reservas" },
+          { value: `${checklistDone}/${checklistTotal}`, label: "checklist" },
+        ].map((stat) => (
+          <div key={stat.label} className="glass-card glass-card-hover rounded-2xl p-5 text-center hover:-translate-y-0.5 transition-all duration-300 cursor-default">
+            <p className="text-2xl font-display font-bold text-accent">{stat.value}</p>
+            <p className="text-xs text-c-muted mt-1 uppercase tracking-wider">{stat.label}</p>
           </div>
         ))}
       </div>
@@ -272,19 +246,12 @@ export default function TripDashboardClient({ trip, reservations, config, locati
         </div>
       </div>
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-        {[
-          { value: locationCount, label: "destinos" },
-          { value: reservations.length, label: "reservas" },
-          { value: `${checklistDone}/${checklistTotal}`, label: "checklist" },
-          { value: `$${Math.round(totalCost / viajeros).toLocaleString()}`, label: "por persona" },
-        ].map((stat) => (
-          <div key={stat.label} className="glass-card glass-card-hover rounded-2xl p-5 text-center hover:-translate-y-0.5 transition-all duration-300 cursor-default">
-            <p className="text-2xl font-display font-bold text-accent">{stat.value}</p>
-            <p className="text-xs text-c-muted mt-1 uppercase tracking-wider">{stat.label}</p>
-          </div>
-        ))}
+      {/* Días restantes highlight */}
+      <div className="glass-card glass-card-hover rounded-2xl p-5 text-center animate-fade-in" style={{ animationDelay: "0.2s" }}>
+        <p className="text-3xl font-display font-bold text-accent">
+          {daysLeft > 0 ? daysLeft : daysLeft === 0 ? "¡Hoy!" : "En curso"}
+        </p>
+        <p className="text-xs text-c-muted mt-1 uppercase tracking-wider">días restantes para el viaje</p>
       </div>
     </div>
   );

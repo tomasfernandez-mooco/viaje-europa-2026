@@ -102,11 +102,13 @@ model Reservation {
   paid               Boolean  @default(false)
   deadlineDate       String?
   alert              String?
-  travelers          Int      @default(2)
-  travelerIds        String?
-  createdAt          DateTime @default(now())
+  travelers              Int      @default(2)
+  travelerIds            String?
+  linkedItineraryDates   String?
+  createdAt              DateTime @default(now())
 
-  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  expenses Expense[]
 
   @@map("reservations")
 }
@@ -183,11 +185,13 @@ model Expense {
   splitBetween      String?
   splitType         String    @default("equal")
   itineraryItemId   String?
+  reservationId     String?
   createdAt         DateTime  @default(now())
 
   trip          Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
   paidBy        Traveler?      @relation("ExpensePaidBy", fields: [paidByTravelerId], references: [id], onDelete: SetNull)
   itineraryItem ItineraryItem? @relation(fields: [itineraryItemId], references: [id], onDelete: SetNull)
+  reservation   Reservation?   @relation(fields: [reservationId], references: [id], onDelete: SetNull)
 
   @@map("expenses")
 }

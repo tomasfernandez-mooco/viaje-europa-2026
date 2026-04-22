@@ -8,9 +8,10 @@ type Props = {
   reservations: Reservation[];
   config: Record<string, string>;
   members: TripMember[];
+  itineraryDates?: string[];
 };
 
-export default function TripReservasClient({ tripId, reservations: initial, config, members }: Props) {
+export default function TripReservasClient({ tripId, reservations: initial, config, members, itineraryDates = [] }: Props) {
   const [reservations, setReservations] = useState(initial);
   const [filtroType, setFiltroType] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
@@ -395,6 +396,7 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
           tcEurUsd={tcEurUsd}
           tcArsMep={tcArsMep}
           members={members}
+          itineraryDates={itineraryDates}
           onSave={handleSave}
           onClose={() => { setModalOpen(false); setEditing(null); }}
         />
@@ -408,6 +410,7 @@ function ReservationModal({
   tcEurUsd,
   tcArsMep,
   members,
+  itineraryDates = [],
   onSave,
   onClose,
 }: {
@@ -415,6 +418,7 @@ function ReservationModal({
   tcEurUsd: number;
   tcArsMep: number;
   members: TripMember[];
+  itineraryDates?: string[];
   onSave: (data: Partial<Reservation>) => void;
   onClose: () => void;
 }) {
@@ -713,6 +717,34 @@ function ReservationModal({
               Pagado
             </label>
           </div>
+
+          {itineraryDates.length > 0 && (
+            <div>
+              <label className={labelClass}>Vincular al itinerario (días)</label>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {(() => {
+                  let linked: string[] = [];
+                  try { linked = JSON.parse(form.linkedItineraryDates ?? "[]"); } catch {}
+                  return itineraryDates.map((date) => {
+                    const isLinked = linked.includes(date);
+                    return (
+                      <button
+                        key={date}
+                        type="button"
+                        onClick={() => {
+                          const next = isLinked ? linked.filter(d => d !== date) : [...linked, date];
+                          update("linkedItineraryDates", JSON.stringify(next));
+                        }}
+                        className={`px-2 py-0.5 rounded-lg text-xs font-medium border transition-all ${isLinked ? "bg-accent text-white border-accent" : "border-c-border text-c-muted hover:border-accent hover:text-accent"}`}
+                      >
+                        {date}
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
 
           {suggestion && !form.reservationUrl && (
             <div className="flex items-center gap-2 p-3 glass-card rounded-2xl border-accent/20">

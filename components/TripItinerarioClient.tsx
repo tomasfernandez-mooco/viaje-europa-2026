@@ -25,12 +25,21 @@ import {
   generateDateRange,
 } from "@/lib/types";
 
+type LinkedReservation = {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  linkedItineraryDates: string;
+};
+
 type Props = {
   tripId: string;
   startDate: string;
   endDate: string;
   items: ItineraryItem[];
   locations: Location[];
+  linkedReservations?: LinkedReservation[];
 };
 
 const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
@@ -163,6 +172,7 @@ export default function TripItinerarioClient({
   endDate: initialEndDate,
   items: initialItems,
   locations,
+  linkedReservations = [],
 }: Props) {
   const [items, setItems] = useState(initialItems);
   const [endDate, setEndDate] = useState(initialEndDate);
@@ -398,9 +408,10 @@ export default function TripItinerarioClient({
                         type="text"
                         value={dayTitleText}
                         onChange={(e) => setDayTitleText(e.target.value)}
-                        placeholder={`Día ${index + 1}`}
-                        className="text-xs font-medium px-2.5 py-0.5 rounded-xl bg-white/20 border border-white/30 text-c-text focus:outline-none focus:border-accent"
+                        placeholder={loc ? `${loc.city}${loc.country ? `, ${loc.country}` : ""}` : `Ciudad, País`}
+                        className="text-xs font-medium px-2.5 py-0.5 rounded-xl bg-white/20 border border-white/30 text-c-text focus:outline-none focus:border-accent min-w-[160px]"
                         autoFocus
+                        onKeyDown={(e) => { if (e.key === "Enter") handleSaveDayTitle(fecha); if (e.key === "Escape") setEditingDayTitle(null); }}
                       />
                       <button
                         onClick={() => handleSaveDayTitle(fecha)}
@@ -417,16 +428,19 @@ export default function TripItinerarioClient({
                     </div>
                   ) : (
                     <div className="flex items-center gap-2.5 flex-wrap">
-                      {/* Day number - READ ONLY */}
                       <span className="text-xs font-medium bg-accent text-white px-2.5 py-0.5 rounded-xl">
                         {`Día ${index + 1}`}
                       </span>
-                      {/* Location - TODO: make editable inline */}
-                      {loc && (
-                        <p className="text-sm font-medium text-c-muted">
-                          {loc.city}{loc.country ? `, ${loc.country}` : ""}
-                        </p>
-                      )}
+                      <button
+                        onClick={() => { setEditingDayTitle(fecha); setDayTitleText(dayTitles[fecha] ?? (loc ? `${loc.city}${loc.country ? `, ${loc.country}` : ""}` : "")); }}
+                        className="text-sm font-medium text-c-muted hover:text-accent transition-colors group flex items-center gap-1"
+                        title="Editar nombre de ciudad"
+                      >
+                        {dayTitles[fecha] || (loc ? `${loc.city}${loc.country ? `, ${loc.country}` : ""}` : "Agregar ciudad...")}
+                        <svg className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
                       {dayItems.length > 0 && (
                         <span className="text-[11px] text-c-subtle">
                           {dayItems.length} {dayItems.length === 1 ? "actividad" : "actividades"}
@@ -519,6 +533,23 @@ export default function TripItinerarioClient({
                     Agregar actividad
                   </button>
                 )}
+
+                {/* Linked reservations for this day */}
+                {(() => {
+                  const dayReservations = linkedReservations.filter(r => {
+                    try { return JSON.parse(r.linkedItineraryDates).includes(fecha); } catch { return false; }
+                  });
+                  if (dayReservations.length === 0) return null;
+                  return (
+                    <div className="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-1.5">
+                      {dayReservations.map(r => (
+                        <span key={r.id} className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-lg border ${r.status === "confirmado" ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-200/30" : "bg-accent/10 text-accent border-accent/20"}`}>
+                          🏷️ {r.title}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           );

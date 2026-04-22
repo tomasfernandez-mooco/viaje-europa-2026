@@ -45,6 +45,7 @@ export type Reservation = {
   alert?: string | null;
   travelers: number;
   travelerIds?: string | null;
+  linkedItineraryDates?: string | null;
   createdAt: string;
 };
 
