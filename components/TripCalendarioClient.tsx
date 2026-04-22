@@ -167,7 +167,7 @@ export default function TripCalendarioClient({ tripId, tripName, startDate, endD
                             isSelected
                               ? "bg-accent/90 text-white ring-2 ring-accent/40 shadow-glass-sm"
                               : isTrip
-                                ? "bg-white/30 dark:bg-white/[0.06] hover:bg-white/50 dark:hover:bg-white/[0.1] border border-white/20 dark:border-white/[0.08] text-c-text cursor-pointer"
+                                ? "bg-white/30 dark:bg-white/[0.1] hover:bg-white/50 dark:hover:bg-white/[0.16] border border-white/20 dark:border-white/[0.15] text-c-text cursor-pointer"
                                 : "text-c-subtle cursor-default"
                           }`}
                         >
@@ -220,7 +220,7 @@ export default function TripCalendarioClient({ tripId, tripName, startDate, endD
                   <h4 className="text-[11px] font-semibold text-c-muted uppercase tracking-widest mb-3">Itinerario</h4>
                   <div className="space-y-2">
                     {selectedItems.map((item) => (
-                      <div key={item.id} className="flex gap-3 p-2.5 rounded-xl bg-white/40 border border-white/30">
+                      <div key={item.id} className="flex gap-3 p-2.5 rounded-xl bg-white/40 dark:bg-white/10 border border-white/30 dark:border-white/15">
                         <div className="w-1 rounded-full shrink-0" style={{ backgroundColor: getTypeColor(item.category) }} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -251,7 +251,7 @@ export default function TripCalendarioClient({ tripId, tripName, startDate, endD
                   <h4 className="text-[11px] font-semibold text-c-muted uppercase tracking-widest mb-3">Reservas</h4>
                   <div className="space-y-2">
                     {selectedRes.map((r) => (
-                      <div key={r.id} className="p-2.5 rounded-xl bg-white/40 border border-white/30">
+                      <div key={r.id} className="p-2.5 rounded-xl bg-white/40 dark:bg-white/10 border border-white/30 dark:border-white/15">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-c-text truncate">{r.title}</p>

@@ -16,6 +16,7 @@ type Expense = {
   splitBetween?: string | null;
   splitType?: string | null;
   itineraryItemId?: string | null;
+  reservationId?: string | null;
   createdAt: string;
 };
 
@@ -41,7 +42,9 @@ const CAT_COLORS: Record<string, string> = { alojamiento: "bg-blue-500", comida:
 const CURRENCIES = ["EUR","USD","ARS","GBP","CZK","HUF","PLN","RON","HRK"];
 const TRAVELER_COLORS = ["#6366f1","#f59e0b","#10b981","#ef4444","#3b82f6","#ec4899","#8b5cf6","#14b8a6"];
 
-type Props = { tripId: string; expenses: Expense[]; tcEurUsd?: number; travelers: Traveler[]; itineraryItems?: ItineraryItemSummary[] };
+type ReservationSummary = { id: string; title: string; type: string; startDate: string };
+
+type Props = { tripId: string; expenses: Expense[]; tcEurUsd?: number; travelers: Traveler[]; itineraryItems?: ItineraryItemSummary[]; reservationsList?: ReservationSummary[] };
 
 // ─── Debt calculation (Splitwise-style) ──────────────────
 type Transfer = { from: string; to: string; amount: number };
@@ -87,12 +90,12 @@ function calcDebts(expenses: Expense[], travelers: Traveler[]): Transfer[] {
   return transfers;
 }
 
-export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd = 1.08, travelers: initialTravelers, itineraryItems = [] }: Props) {
+export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd = 1.08, travelers: initialTravelers, itineraryItems = [], reservationsList = [] }: Props) {
   const [expenses, setExpenses] = useState(initial);
   const [travelers, setTravelers] = useState<Traveler[]>(initialTravelers);
 
   // ── expense form ──
-  const defaultForm = { category: "comida", amount: "", currency: "EUR", description: "", date: new Date().toISOString().split("T")[0], paidByTravelerId: "", splitBetween: [] as string[], itineraryItemId: "" };
+  const defaultForm = { category: "comida", amount: "", currency: "EUR", description: "", date: new Date().toISOString().split("T")[0], paidByTravelerId: "", splitBetween: [] as string[], itineraryItemId: "", reservationId: "" };
   const [form, setForm] = useState(defaultForm);
   const [saving, setSaving] = useState(false);
   const [filterCat, setFilterCat] = useState("todas");
@@ -221,11 +224,12 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
         splitBetween: form.splitBetween.length > 0 ? form.splitBetween : null,
         splitType: "equal",
         itineraryItemId: form.itineraryItemId || null,
+        reservationId: form.reservationId || null,
       }),
     });
     const created = await res.json();
     setExpenses(prev => [created, ...prev]);
-    setForm(f => ({ ...f, amount: "", description: "", paidByTravelerId: "", splitBetween: [], itineraryItemId: "" }));
+    setForm(f => ({ ...f, amount: "", description: "", paidByTravelerId: "", splitBetween: [], itineraryItemId: "", reservationId: "" }));
     setReceiptUrl("");
     setSelectedFile(null);
     setUploadStatus("");
@@ -251,6 +255,7 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
         splitBetween: editForm.splitBetween.length > 0 ? editForm.splitBetween : null,
         splitType: "equal",
         itineraryItemId: editForm.itineraryItemId || null,
+        reservationId: editForm.reservationId || null,
       }),
     });
     const updated = await res.json();
@@ -529,6 +534,19 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
                 </>
               )}
 
+              {/* Reservation link */}
+              {reservationsList.length > 0 && (
+                <div>
+                  <label className="text-[10px] font-semibold text-c-muted uppercase tracking-wider block mb-1">Reserva asociada (opcional)</label>
+                  <select value={form.reservationId} onChange={e => setForm(f => ({ ...f, reservationId: e.target.value }))} className={`${inputCls} w-full`}>
+                    <option value="">— Sin reserva —</option>
+                    {reservationsList.map(r => (
+                      <option key={r.id} value={r.id}>{r.startDate} · {r.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Itinerary item link */}
               {itineraryItems.length > 0 && (
                 <div>
@@ -640,6 +658,14 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
                                   </div>
                                 </>
                               )}
+                              {reservationsList.length > 0 && (
+                                <select value={editForm.reservationId} onChange={e => setEditForm(f => f ? {...f, reservationId: e.target.value} : f)} className={`${inputCls} w-full`}>
+                                  <option value="">— Sin reserva —</option>
+                                  {reservationsList.map(r => (
+                                    <option key={r.id} value={r.id}>{r.startDate} · {r.title}</option>
+                                  ))}
+                                </select>
+                              )}
                               {itineraryItems.length > 0 && (
                                 <select value={editForm.itineraryItemId} onChange={e => setEditForm(f => f ? {...f, itineraryItemId: e.target.value} : f)} className={`${inputCls} w-full`}>
                                   <option value="">— Sin vincular al itinerario —</option>
@@ -672,7 +698,7 @@ export default function TripGastosClient({ tripId, expenses: initial, tcEurUsd =
                                   <button onClick={() => {
                                     const splitArr = exp.splitBetween ? JSON.parse(exp.splitBetween) : [];
                                     setEditingId(exp.id);
-                                    setEditForm({ category: exp.category, amount: String(exp.amount), currency: exp.currency, description: exp.description ?? "", date: exp.date, paidByTravelerId: exp.paidByTravelerId ?? "", splitBetween: splitArr, itineraryItemId: exp.itineraryItemId ?? "" });
+                                    setEditForm({ category: exp.category, amount: String(exp.amount), currency: exp.currency, description: exp.description ?? "", date: exp.date, paidByTravelerId: exp.paidByTravelerId ?? "", splitBetween: splitArr, itineraryItemId: exp.itineraryItemId ?? "", reservationId: (exp as Expense & { reservationId?: string | null }).reservationId ?? "" });
                                   }} className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-lg transition-colors">Editar</button>
                                   <button onClick={() => handleDelete(exp.id)} className="text-xs text-c-subtle hover:text-red-500 opacity-0 group-hover:opacity-100 px-2 py-1 rounded-lg transition-all">Eliminar</button>
                                 </div>

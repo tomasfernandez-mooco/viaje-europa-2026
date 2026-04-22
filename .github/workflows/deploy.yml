@@ -97,3 +97,5 @@ for e in d.get('envs', []):
 
           run_migration "ALTER TABLE \"trips\" ADD COLUMN \"deletedAt\" DATETIME" "trips.deletedAt"
           run_migration "ALTER TABLE \"expenses\" ADD COLUMN \"itineraryItemId\" TEXT" "expenses.itineraryItemId"
+          run_migration "ALTER TABLE \"expenses\" ADD COLUMN \"reservationId\" TEXT" "expenses.reservationId"
+          run_migration "ALTER TABLE \"reservations\" ADD COLUMN \"linkedItineraryDates\" TEXT" "reservations.linkedItineraryDates"
