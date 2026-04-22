@@ -58,12 +58,17 @@ export async function POST(req: NextRequest) {
       console.warn("[OCR-RESERVATION] Blob upload failed (BLOB_READ_WRITE_TOKEN missing?), continuing without file storage:", blobErr instanceof Error ? blobErr.message : String(blobErr));
     }
 
-    // Determine media type
-    let mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp" | "application/pdf" = "image/jpeg";
-    if (file.type.includes("png")) mediaType = "image/png";
-    else if (file.type.includes("gif")) mediaType = "image/gif";
-    else if (file.type.includes("webp")) mediaType = "image/webp";
-    else if (file.type.includes("pdf")) mediaType = "application/pdf";
+    const isPdf = file.type.includes("pdf");
+    const fileContent = isPdf
+      ? { type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64 } }
+      : {
+          type: "image" as const,
+          source: {
+            type: "base64" as const,
+            media_type: (file.type.includes("png") ? "image/png" : file.type.includes("gif") ? "image/gif" : file.type.includes("webp") ? "image/webp" : "image/jpeg") as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+            data: base64,
+          },
+        };
 
     // Call Claude Vision API
     const response = await anthropic.messages.create({
@@ -73,14 +78,7 @@ export async function POST(req: NextRequest) {
         {
           role: "user",
           content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mediaType,
-                data: base64,
-              },
-            },
+            fileContent,
             {
               type: "text",
               text: `Analiza esta confirmación de reserva y extrae la siguiente información en formato JSON:
