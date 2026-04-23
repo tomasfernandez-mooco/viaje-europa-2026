@@ -5,8 +5,7 @@ import TripReservasClient from "@/components/TripReservasClient";
 export const dynamic = "force-dynamic";
 
 export default async function ReservasPage({ params }: { params: { tripId: string } }) {
-  const [reservations, configRows, members, itineraryItems] = await Promise.all([
-    prisma.reservation.findMany({ where: { tripId: params.tripId }, orderBy: { startDate: "asc" } }),
+  const [configRows, members, itineraryItems] = await Promise.all([
     prisma.tripConfig.findMany({ where: { tripId: params.tripId } }),
     prisma.tripMember.findMany({
       where: { tripId: params.tripId },
@@ -15,13 +14,20 @@ export default async function ReservasPage({ params }: { params: { tripId: strin
     prisma.itineraryItem.findMany({ where: { tripId: params.tripId }, orderBy: [{ date: "asc" }, { orderIndex: "asc" }] }),
   ]);
 
+  // Separated — Prisma selects linkedItineraryDates which may not exist yet in the DB.
+  let reservations: Reservation[] = [];
+  try {
+    const rows = await prisma.reservation.findMany({ where: { tripId: params.tripId }, orderBy: { startDate: "asc" } });
+    reservations = rows as unknown as Reservation[];
+  } catch { /* migration pending */ }
+
   const config: Record<string, string> = {};
   configRows.forEach((r) => (config[r.key] = r.value));
 
   return (
     <TripReservasClient
       tripId={params.tripId}
-      reservations={reservations as unknown as Reservation[]}
+      reservations={reservations}
       config={config}
       members={members as unknown as TripMember[]}
       itineraryDates={[...new Set(itineraryItems.map(i => i.date))].sort()}
