@@ -650,7 +650,16 @@ function ItemModal(props: ItemModalProps) {
               autoFocus
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className={labelClass}>Fecha</label>
+              <input
+                type="date"
+                value={form.date ?? ""}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                className={inputClass}
+              />
+            </div>
             <div>
               <label className={labelClass}>Categoría</label>
               <select
