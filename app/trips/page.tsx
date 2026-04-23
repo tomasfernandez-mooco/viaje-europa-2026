@@ -11,8 +11,8 @@ export default async function TripsPage() {
 
   const trips = await prisma.trip.findMany({
     where: user.role === "admin"
-      ? {}
-      : { OR: [{ userId: user.id }, { members: { some: { userId: user.id } } }] },
+      ? { deletedAt: null }
+      : { deletedAt: null, OR: [{ userId: user.id }, { members: { some: { userId: user.id } } }] },
     orderBy: { startDate: "asc" },
   });
 
