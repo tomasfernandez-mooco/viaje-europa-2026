@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 
-export async function POST(req: Request) {
-  const secret = req.headers.get("x-migrate-secret");
-  if (secret !== "europa2026-migrate") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (!prisma) {
-    return NextResponse.json({ error: "No DB connection" }, { status: 500 });
-  }
+async function runMigrations() {
+  if (!prisma) return { error: "No DB connection" };
 
   const migrations = [
     { label: "trips.deletedAt", sql: 'ALTER TABLE "trips" ADD COLUMN "deletedAt" DATETIME' },
@@ -27,6 +20,22 @@ export async function POST(req: Request) {
       results[label] = e instanceof Error ? e.message : String(e);
     }
   }
+  return results;
+}
 
-  return NextResponse.json(results);
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  if (searchParams.get("secret") !== "europa2026-migrate") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return NextResponse.json(await runMigrations());
+}
+
+export async function POST(req: Request) {
+  const secret = req.headers.get("x-migrate-secret");
+  if (secret !== "europa2026-migrate") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return NextResponse.json(await runMigrations());
 }
