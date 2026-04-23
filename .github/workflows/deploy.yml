@@ -85,6 +85,7 @@ for e in d.get('envs', []):
           run_migration "ALTER TABLE \"expenses\" ADD COLUMN \"itineraryItemId\" TEXT" "expenses.itineraryItemId"
           run_migration "ALTER TABLE \"expenses\" ADD COLUMN \"reservationId\" TEXT" "expenses.reservationId"
           run_migration "ALTER TABLE \"reservations\" ADD COLUMN \"linkedItineraryDates\" TEXT" "reservations.linkedItineraryDates"
+          run_migration "ALTER TABLE \"reservations\" ADD COLUMN \"costBreakdown\" TEXT" "reservations.costBreakdown"
 
       - name: Trigger Vercel production deployment
         run: |

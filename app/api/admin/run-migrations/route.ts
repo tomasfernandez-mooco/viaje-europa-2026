@@ -9,6 +9,7 @@ async function runMigrations() {
     { label: "expenses.itineraryItemId", sql: 'ALTER TABLE "expenses" ADD COLUMN "itineraryItemId" TEXT' },
     { label: "expenses.reservationId", sql: 'ALTER TABLE "expenses" ADD COLUMN "reservationId" TEXT' },
     { label: "reservations.linkedItineraryDates", sql: 'ALTER TABLE "reservations" ADD COLUMN "linkedItineraryDates" TEXT' },
+    { label: "reservations.costBreakdown", sql: 'ALTER TABLE "reservations" ADD COLUMN "costBreakdown" TEXT' },
   ];
 
   const results: Record<string, string> = {};

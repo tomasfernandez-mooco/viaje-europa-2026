@@ -105,6 +105,7 @@ model Reservation {
   travelers              Int      @default(2)
   travelerIds            String?
   linkedItineraryDates   String?
+  costBreakdown          String?
   createdAt              DateTime @default(now())
 
   trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)

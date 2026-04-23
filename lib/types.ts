@@ -46,6 +46,7 @@ export type Reservation = {
   travelers: number;
   travelerIds?: string | null;
   linkedItineraryDates?: string | null;
+  costBreakdown?: string | null;
   createdAt: string;
 };
 
