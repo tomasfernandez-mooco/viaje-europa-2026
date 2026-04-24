@@ -58,32 +58,30 @@ const ITINERARY_ITEMS = [
   { date: "2026-07-26", time: "10:30", title: "Sirmione: Castello Scaligero + Grotte di Catullo", city: "Sirmione", country: "Italia", category: "actividad", description: "Castillo medieval + ruinas romanas" },
   { date: "2026-07-26", time: "13:00", title: "Almuerzo + playa Lago di Garda", city: "Sirmione", country: "Italia", category: "actividad", description: "Tarde libre en la playa" },
 
-  // 27 Jul (LUN) - Lago di Garda → Bergamo
+  // 27 Jul (LUN) - Lago di Garda → Bergamo → Berlín
   { date: "2026-07-27", time: "09:00", title: "Salida a Bergamo", city: "Sirmione", country: "Italia", category: "transporte", description: "~1h" },
   { date: "2026-07-27", time: "10:30", title: "Bergamo Alta: ciudad medieval amurallada", city: "Bergamo", country: "Italia", category: "actividad", description: "Funicolare + Piazza Vecchia" },
   { date: "2026-07-27", time: "14:00", title: "Almuerzo + devolver auto", city: "Bergamo", country: "Italia", category: "actividad", description: "Hotel cerca del aeropuerto" },
+  { date: "2026-07-27", time: "16:00", title: "Transfer al aeropuerto Orio al Serio (BGY)", city: "Bergamo", country: "Italia", category: "transporte" },
+  { date: "2026-07-27", time: "18:00", title: "Vuelo Bergamo → Berlín", city: "Bergamo", country: "Italia", category: "vuelo", description: "Salida 18:00" },
+  { date: "2026-07-27", time: "21:00", title: "Llegada Berlín + Alexanderplatz", city: "Berlín", country: "Alemania", category: "alojamiento", description: "Check-in + paseo" },
 
-  // 28 Jul (MAR) - Vuelo a Berlín
-  { date: "2026-07-28", time: "09:30", title: "Transfer al aeropuerto Orio al Serio (BGY)", city: "Bergamo", country: "Italia", category: "transporte" },
-  { date: "2026-07-28", time: "12:00", title: "Vuelo Bergamo → Berlín", city: "Bergamo", country: "Italia", category: "vuelo", description: "Salida 12:00" },
-  { date: "2026-07-28", time: "15:00", title: "Llegada Berlín + Alexanderplatz", city: "Berlín", country: "Alemania", category: "alojamiento", description: "Check-in + paseo" },
+  // 28 Jul (MAR) - Berlín: Historia
+  { date: "2026-07-28", time: "09:00", title: "East Side Gallery (Muro de Berlín)", city: "Berlín", country: "Alemania", category: "actividad", description: "1.3km del muro" },
+  { date: "2026-07-28", time: "11:00", title: "Checkpoint Charlie + Museo del Muro", city: "Berlín", country: "Alemania", category: "actividad" },
+  { date: "2026-07-28", time: "14:00", title: "Almuerzo en Mitte", city: "Berlín", country: "Alemania", category: "actividad" },
+  { date: "2026-07-28", time: "15:30", title: "Reichstag", city: "Berlín", country: "Alemania", category: "actividad", description: "Reserva anticipada gratuita" },
+  { date: "2026-07-28", time: "17:30", title: "Puerta de Brandenburgo + Memorial del Holocausto", city: "Berlín", country: "Alemania", category: "actividad" },
 
-  // 29 Jul (MIE) - Berlín: Historia
-  { date: "2026-07-29", time: "09:00", title: "East Side Gallery (Muro de Berlín)", city: "Berlín", country: "Alemania", category: "actividad", description: "1.3km del muro" },
-  { date: "2026-07-29", time: "11:00", title: "Checkpoint Charlie + Museo del Muro", city: "Berlín", country: "Alemania", category: "actividad" },
-  { date: "2026-07-29", time: "14:00", title: "Almuerzo en Mitte", city: "Berlín", country: "Alemania", category: "actividad" },
-  { date: "2026-07-29", time: "15:30", title: "Reichstag", city: "Berlín", country: "Alemania", category: "actividad", description: "Reserva anticipada gratuita" },
-  { date: "2026-07-29", time: "17:30", title: "Puerta de Brandenburgo + Memorial del Holocausto", city: "Berlín", country: "Alemania", category: "actividad" },
+  // 29 Jul (MIE) - Berlín: Cultura + Shopping
+  { date: "2026-07-29", time: "09:00", title: "Isla de los Museos", city: "Berlín", country: "Alemania", category: "actividad", description: "Pergamon Museum" },
+  { date: "2026-07-29", time: "12:30", title: "Almuerzo en Hackescher Markt", city: "Berlín", country: "Alemania", category: "actividad" },
+  { date: "2026-07-29", time: "14:00", title: "Shopping: KaDeWe + Kurfürstendamm", city: "Berlín", country: "Alemania", category: "actividad", description: "Día de shopping" },
+  { date: "2026-07-29", time: "18:00", title: "Potsdamer Platz + Sony Center", city: "Berlín", country: "Alemania", category: "actividad" },
+  { date: "2026-07-29", time: "20:00", title: "Cena en Prenzlauer Berg", city: "Berlín", country: "Alemania", category: "actividad" },
 
-  // 30 Jul (JUE) - Berlín: Cultura + Shopping
-  { date: "2026-07-30", time: "09:00", title: "Isla de los Museos", city: "Berlín", country: "Alemania", category: "actividad", description: "Pergamon Museum" },
-  { date: "2026-07-30", time: "12:30", title: "Almuerzo en Hackescher Markt", city: "Berlín", country: "Alemania", category: "actividad" },
-  { date: "2026-07-30", time: "14:00", title: "Shopping: KaDeWe + Kurfürstendamm", city: "Berlín", country: "Alemania", category: "actividad", description: "Día de shopping" },
-  { date: "2026-07-30", time: "18:00", title: "Potsdamer Platz + Sony Center", city: "Berlín", country: "Alemania", category: "actividad" },
-  { date: "2026-07-30", time: "20:00", title: "Cena en Prenzlauer Berg", city: "Berlín", country: "Alemania", category: "actividad" },
-
-  // 31 Jul (VIE) - Vuelo
-  { date: "2026-07-31", time: "10:00", title: "Vuelo Berlín → Buenos Aires", city: "Berlín", country: "Alemania", category: "vuelo", description: "Vuelo a casa" },
+  // 30 Jul (JUE) - Vuelo
+  { date: "2026-07-30", time: "10:00", title: "Vuelo Berlín → Buenos Aires", city: "Berlín", country: "Alemania", category: "vuelo", description: "Vuelo a casa" },
 ];
 
 export async function POST(request: NextRequest) {
@@ -102,13 +100,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Trip not found" }, { status: 404 });
     }
 
-    // Delete existing items from Jul 17-31
+    // Delete existing items from Jul 17-30
     const deleted = await prisma.itineraryItem.deleteMany({
       where: {
         tripId: trip.id,
         date: {
           gte: "2026-07-17",
-          lte: "2026-07-31"
+          lte: "2026-07-30"
         }
       }
     });
