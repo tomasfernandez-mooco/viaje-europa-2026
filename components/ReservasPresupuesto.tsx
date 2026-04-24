@@ -10,13 +10,15 @@ type Props = {
   getCostForTraveler: (r: Reservation, t: Traveler) => number;
 };
 
-export default function ReservasPresupuesto({ reservations, travelers, parseTravelerIds, getCostForTraveler }: Props) {
-  const totalAll = reservations.reduce((s, r) => s + r.priceUSD, 0);
-  const pagadoAll = reservations.filter((r) => r.paid).reduce((s, r) => s + r.priceUSD, 0);
+export default function ReservasPresupuesto({ reservations = [], travelers: initialTravelers = [], parseTravelerIds, getCostForTraveler }: Props) {
+  const travelers = Array.isArray(initialTravelers) ? initialTravelers : [];
+  const reservationsArray = Array.isArray(reservations) ? reservations : [];
+  const totalAll = reservationsArray.reduce((s, r) => s + r.priceUSD, 0);
+  const pagadoAll = reservationsArray.filter((r) => r.paid).reduce((s, r) => s + r.priceUSD, 0);
   const saldoAll = totalAll - pagadoAll;
 
   const byTraveler = travelers.map((t) => {
-    const myR = reservations.filter((r) => {
+    const myR = reservationsArray.filter((r) => {
       const ids = parseTravelerIds(r);
       return ids.length === 0 || ids.includes(t.id);
     });
@@ -27,7 +29,7 @@ export default function ReservasPresupuesto({ reservations, travelers, parseTrav
 
   const byType = RESERVATION_TYPES.map((type) => ({
     name: CATEGORIA_LABELS[type] ?? type,
-    value: Math.round(reservations.filter((r) => r.type === type).reduce((s, r) => s + r.priceUSD, 0)),
+    value: Math.round(reservationsArray.filter((r) => r.type === type).reduce((s, r) => s + r.priceUSD, 0)),
   })).filter((x) => x.value > 0);
 
   const PIE_COLORS = ["#6366f1", "#f59e0b", "#10b981", "#f43f5e", "#3b82f6", "#8b5cf6"];

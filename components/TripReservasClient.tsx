@@ -15,8 +15,9 @@ type Props = {
   itineraryDates?: string[];
 };
 
-export default function TripReservasClient({ tripId, reservations: initial, config, members, travelers, itineraryDates = [] }: Props) {
-  const [reservations, setReservations] = useState(initial);
+export default function TripReservasClient({ tripId, reservations: initial = [], config = {}, members = [], travelers: initialTravelers = [], itineraryDates = [] }: Props) {
+  const travelers = Array.isArray(initialTravelers) ? initialTravelers : [];
+  const [reservations, setReservations] = useState(Array.isArray(initial) ? initial : []);
   const [filtroType, setFiltroType] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
   const [busqueda, setBusqueda] = useState("");
