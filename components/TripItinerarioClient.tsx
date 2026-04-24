@@ -98,8 +98,11 @@ function ItemRowContent({ item, onEdit, onDelete, isDragOverlay }: ItemRowProps)
 
   return (
     <>
-      <div className="flex items-center gap-1 mt-0.5 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0 mt-0.5 min-w-[52px]">
         {getAlertDot(item.alertLevel)}
+        <span className={`text-[11px] px-2 py-0.5 rounded-xl border ${CATEGORIA_COLORS[item.category] ?? "bg-white/40 text-c-muted border-white/20"}`}>
+          {CATEGORIA_LABELS[item.category] ?? item.category}
+        </span>
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
@@ -110,9 +113,6 @@ function ItemRowContent({ item, onEdit, onDelete, isDragOverlay }: ItemRowProps)
           <p className="text-xs text-c-muted mt-0.5 truncate">{item.description}</p>
         )}
       </div>
-      <span className={`text-[11px] px-2 py-0.5 rounded-xl border shrink-0 ${CATEGORIA_COLORS[item.category] ?? "bg-white/40 text-c-muted border-white/20"}`}>
-        {CATEGORIA_LABELS[item.category] ?? item.category}
-      </span>
       {!isDragOverlay && (
         <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
