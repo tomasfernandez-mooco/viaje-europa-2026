@@ -37,7 +37,7 @@ export async function PUT(
     const body = await request.json();
     const { date, time, title, description, city, country, category, status, alertLevel, reservationId, orderIndex } = body;
     const item = await prisma.itineraryItem.update({
-      where: { id, tripId },
+      where: { id },
       data: {
         ...(date !== undefined && { date }),
         ...(time !== undefined && { time }),
@@ -69,7 +69,7 @@ export async function DELETE(
   try {
     const { tripId, id } = await params;
     await prisma.itineraryItem.delete({
-      where: { id, tripId },
+      where: { id },
     });
     return NextResponse.json({ success: true });
   } catch (error) {
