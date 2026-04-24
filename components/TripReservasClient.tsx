@@ -58,8 +58,9 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        console.error("[handleSave] Failed:", res.status, res.statusText);
-        alert("Error al guardar: " + res.statusText);
+        const errBody = await res.json().catch(() => ({ error: res.statusText }));
+        console.error("[handleSave] Failed:", res.status, errBody);
+        alert("Error al guardar: " + JSON.stringify(errBody));
         return;
       }
       const saved = await res.json();
