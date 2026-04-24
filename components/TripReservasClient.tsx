@@ -54,14 +54,19 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
       setReservations((r) => r.map((x) => (x.id === editing.id ? updated : x)));
       setModalOpen(false);
       setEditing(null);
+      const payload = { ...editing, ...data };
+      console.log("[handleSave] Updating with payload:", { id: editing.id, costBreakdown: payload.costBreakdown });
       const res = await fetch(`/api/trips/${tripId}/reservations/${editing.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...editing, ...data }),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) setReservations(prev);
-      else {
+      if (!res.ok) {
+        console.error("[handleSave] Failed:", res.status, res.statusText);
+        setReservations(prev);
+      } else {
         const saved = await res.json();
+        console.log("[handleSave] Success:", saved.id);
         setReservations((r) => r.map((x) => (x.id === editing.id ? saved : x)));
       }
     } else {
