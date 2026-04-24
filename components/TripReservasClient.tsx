@@ -39,15 +39,21 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
       .filter((r) => !filtroType || r.type === filtroType)
       .filter((r) => !filtroStatus || r.status === filtroStatus)
       .filter((r) => !busqueda || r.title.toLowerCase().includes(busqueda.toLowerCase()))
+      .filter((r) => {
+        if (!filtroViajero) return true;
+        try { return (JSON.parse(r.travelerIds ?? "[]") as string[]).includes(filtroViajero); } catch { return true; }
+      })
       .sort((a, b) => {
         const av = a[sortKey] ?? "";
         const bv = b[sortKey] ?? "";
         if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
         return String(av).localeCompare(String(bv)) * dir;
       });
-  }, [reservations, filtroType, filtroStatus, busqueda, sortKey, sortDir]);
+  }, [reservations, filtroType, filtroStatus, busqueda, filtroViajero, sortKey, sortDir]);
 
   const totalUSD = filtered.reduce((s, r) => s + r.priceUSD, 0);
+  const totalPagado = filtered.filter((r) => r.paid).reduce((s, r) => s + r.priceUSD, 0);
+  const totalSaldo = totalUSD - totalPagado;
 
   async function handleSave(data: Partial<Reservation>) {
     if (editing) {
@@ -137,22 +143,20 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-display font-semibold tracking-tight text-c-heading">Reservas</h1>
-          <p className="text-sm text-c-muted mt-0.5">{filtered.length} reservas &middot; ${totalUSD.toLocaleString()} USD</p>
+          <p className="text-sm text-c-muted mt-0.5">
+            {filtered.length} reservas &middot; ${totalUSD.toLocaleString()} USD &middot;
+            <span className="text-green-600 dark:text-green-400"> Pagado ${totalPagado.toLocaleString()}</span>
+            <span className="text-amber-600 dark:text-amber-400"> · Saldo ${totalSaldo.toLocaleString()}</span>
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded-xl overflow-hidden border border-white/10 text-xs">
-            <button
-              onClick={() => setVista("reservas")}
-              className={`px-3 py-1.5 transition-colors ${vista === "reservas" ? "bg-accent text-white" : "text-c-muted hover:text-c-text"}`}
-            >
-              Por reserva
-            </button>
-            <button
-              onClick={() => setVista("viajeros")}
-              className={`px-3 py-1.5 transition-colors ${vista === "viajeros" ? "bg-accent text-white" : "text-c-muted hover:text-c-text"}`}
-            >
-              Por viajero
-            </button>
+            {(["reservas", "viajeros", "presupuesto"] as const).map((v) => (
+              <button key={v} onClick={() => setVista(v)}
+                className={`px-3 py-1.5 transition-colors capitalize ${vista === v ? "bg-accent text-white" : "text-c-muted hover:text-c-text"}`}>
+                {v === "reservas" ? "Por reserva" : v === "viajeros" ? "Por viajero" : "Presupuesto"}
+              </button>
+            ))}
           </div>
           <button
             onClick={() => { setEditing(null); setModalOpen(true); }}
@@ -175,6 +179,12 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
           <option value="">Estado</option>
           {ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}
         </select>
+        {travelers.length > 0 && (
+          <select value={filtroViajero} onChange={(e) => setFiltroViajero(e.target.value)} className={inputClass}>
+            <option value="">Viajero</option>
+            {travelers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        )}
       </div>
 
       {vista === "reservas" && (
@@ -219,21 +229,21 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
                       </th>
                     );
                   })}
-                  <th className="text-right px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Costo</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">
+                  <th className="text-right px-3 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Original</th>
+                  <th className="text-right px-3 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">
                     <button onClick={() => handleSort("priceUSD")} className={`flex items-center gap-1 ml-auto hover:text-c-text transition-colors ${sortKey === "priceUSD" ? "text-c-text" : ""}`}>
-                      USD
-                      <span className="text-[9px]">{sortKey === "priceUSD" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
+                      USD <span className="text-[9px]">{sortKey === "priceUSD" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
                     </button>
                   </th>
-                  <th className="text-left px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">
+                  <th className="text-right px-3 py-3 text-[11px] font-medium text-green-600 dark:text-green-400 uppercase tracking-wider">Pagado</th>
+                  <th className="text-right px-3 py-3 text-[11px] font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider">Saldo</th>
+                  <th className="text-left px-3 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">
                     <button onClick={() => handleSort("status")} className={`flex items-center gap-1 hover:text-c-text transition-colors ${sortKey === "status" ? "text-c-text" : ""}`}>
-                      Estado
-                      <span className="text-[9px]">{sortKey === "status" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
+                      Estado <span className="text-[9px]">{sortKey === "status" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Viajeros</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="px-3 py-3 text-[11px] font-medium text-c-muted uppercase tracking-wider">Viajeros</th>
+                  <th className="px-3 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
@@ -261,23 +271,26 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
                       {formatDateShort(r.startDate)}
                       {r.endDate && r.endDate !== r.startDate && ` — ${formatDateShort(r.endDate)}`}
                     </td>
-                    <td className="px-4 py-3 text-right text-c-muted">{formatMoney(r.price, r.currency)}</td>
-                    <td className="px-4 py-3 text-right font-medium text-c-heading">${r.priceUSD.toLocaleString()}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3 text-right text-c-muted text-xs">{formatMoney(r.price, r.currency)}</td>
+                    <td className="px-3 py-3 text-right font-medium text-c-heading">${r.priceUSD.toLocaleString()}</td>
+                    <td className="px-3 py-3 text-right font-medium text-green-600 dark:text-green-400">
+                      {r.paid ? `$${r.priceUSD.toLocaleString()}` : "—"}
+                    </td>
+                    <td className="px-3 py-3 text-right font-medium text-amber-600 dark:text-amber-400">
+                      {r.paid ? "—" : `$${r.priceUSD.toLocaleString()}`}
+                    </td>
+                    <td className="px-3 py-3">
                       <button onClick={() => toggleStatus(r)}><EstadoBadge estado={r.status} /></button>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3">
                       <div className="flex gap-1 flex-wrap">
                         {parseTravelerIds(r).length > 0
                           ? parseTravelerIds(r).map((tid) => {
                               const traveler = travelerById(tid);
                               return (
-                                <span
-                                  key={tid}
-                                  title={traveler?.name ?? tid}
+                                <span key={tid} title={traveler?.name ?? tid}
                                   className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-semibold text-white"
-                                  style={{ backgroundColor: traveler?.color ?? "#6366f1" }}
-                                >
+                                  style={{ backgroundColor: traveler?.color ?? "#6366f1" }}>
                                   {(traveler?.name ?? tid).charAt(0).toUpperCase()}
                                 </span>
                               );
@@ -286,20 +299,14 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
                         }
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        {r.reservationUrl && (
-                          <a href={r.reservationUrl} target="_blank" rel="noopener noreferrer"
-                            className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/[0.06] transition-colors">
-                            Reservar
-                          </a>
-                        )}
+                    <td className="px-3 py-3">
+                      <div className="flex flex-col items-end gap-1">
                         <button onClick={() => { setEditing(r); setModalOpen(true); }}
-                          className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/[0.06] transition-colors">
+                          className="text-xs text-c-muted hover:text-accent px-2 py-1 rounded-xl hover:bg-white/[0.06] transition-colors w-full text-right">
                           Editar
                         </button>
                         <button onClick={() => handleDelete(r.id)}
-                          className="text-xs text-c-subtle hover:text-red-500 px-2 py-1 rounded-xl hover:bg-red-50/50 transition-colors">
+                          className="text-xs text-c-subtle hover:text-red-500 px-2 py-1 rounded-xl hover:bg-red-50/50 transition-colors w-full text-right">
                           Eliminar
                         </button>
                       </div>
@@ -319,21 +326,23 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
                     <p className="font-medium text-c-heading text-sm">{r.title}</p>
                     <p className="text-xs text-c-muted mt-0.5">{r.city} &middot; {formatDateShort(r.startDate)}</p>
                   </div>
-                  <div className="text-right ml-3">
+                  <div className="text-right ml-3 shrink-0">
                     <p className="text-xs text-c-muted">{formatMoney(r.price, r.currency)}</p>
                     <p className="text-sm font-medium text-c-heading">${r.priceUSD.toLocaleString()}</p>
+                    {r.paid
+                      ? <p className="text-xs text-green-600">Pagado</p>
+                      : <p className="text-xs text-amber-600">Saldo ${r.priceUSD.toLocaleString()}</p>
+                    }
                   </div>
                 </div>
                 {r.alert && <p className="text-xs text-amber-600 mb-2">{r.alert}</p>}
                 <div className="flex items-center justify-between">
                   <button onClick={() => toggleStatus(r)}><EstadoBadge estado={r.status} /></button>
                   <div className="flex gap-2">
-                    {r.reservationUrl && (
-                      <a href={r.reservationUrl} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-c-muted hover:text-accent transition-colors">Reservar</a>
-                    )}
                     <button onClick={() => { setEditing(r); setModalOpen(true); }}
                       className="text-xs text-c-muted hover:text-accent transition-colors">Editar</button>
+                    <button onClick={() => handleDelete(r.id)}
+                      className="text-xs text-c-subtle hover:text-red-500 transition-colors">Eliminar</button>
                   </div>
                 </div>
               </div>
@@ -352,52 +361,193 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
               const ids = parseTravelerIds(r);
               return ids.length === 0 || ids.includes(traveler.id);
             });
-            const total = myReservations.reduce((s, r) => s + getCostForTraveler(r, traveler), 0);
+            const totalCosto = myReservations.reduce((s, r) => s + getCostForTraveler(r, traveler), 0);
+            const totalPagadoV = myReservations.filter((r) => r.paid).reduce((s, r) => s + getCostForTraveler(r, traveler), 0);
+            const totalSaldoV = totalCosto - totalPagadoV;
+            const paidBy = travelers.find((t) => t.id === myReservations[0]?.paidBy);
             return (
               <div key={traveler.id} className="glass-card rounded-2xl overflow-hidden">
-                <div className="px-5 py-4 flex items-center justify-between border-b border-white/10">
+                <div className="px-5 py-4 flex items-center justify-between border-b border-white/10 flex-wrap gap-3">
                   <div className="flex items-center gap-3">
-                    <span
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm"
-                      style={{ backgroundColor: traveler.color }}
-                    >
+                    <span className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm"
+                      style={{ backgroundColor: traveler.color }}>
                       {traveler.name.charAt(0).toUpperCase()}
                     </span>
                     <div>
                       <p className="font-medium text-c-heading text-sm">{traveler.name}</p>
-                      <p className="text-xs text-c-muted capitalize">{traveler.role ?? "viajero"}</p>
+                      <p className="text-xs text-c-muted">{myReservations.length} reservas</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-c-muted">Total</p>
-                    <p className="font-semibold text-c-heading">${Math.round(total).toLocaleString()} USD</p>
+                  <div className="flex gap-5 text-right">
+                    <div><p className="text-[10px] text-c-muted uppercase tracking-wide">Total</p><p className="font-semibold text-c-heading text-sm">${Math.round(totalCosto).toLocaleString()}</p></div>
+                    <div><p className="text-[10px] text-green-600 uppercase tracking-wide">Pagado</p><p className="font-semibold text-green-600 text-sm">${Math.round(totalPagadoV).toLocaleString()}</p></div>
+                    <div><p className="text-[10px] text-amber-600 uppercase tracking-wide">Saldo</p><p className="font-semibold text-amber-600 text-sm">${Math.round(totalSaldoV).toLocaleString()}</p></div>
                   </div>
                 </div>
-                <div className="divide-y divide-white/[0.06]">
-                  {myReservations.length === 0 && (
-                    <p className="text-xs text-c-muted px-5 py-3">Sin reservas asignadas.</p>
-                  )}
-                  {myReservations.map((r) => (
-                    <div key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-c-muted text-xs shrink-0">{formatDateShort(r.startDate)}</span>
-                        <span className="text-c-heading truncate">{r.title}</span>
-                        <span className="text-c-subtle text-xs shrink-0">{r.city}</span>
-                      </div>
-                      <div className="text-right ml-4 shrink-0">
-                        <p className="font-medium text-c-heading">${Math.round(getCostForTraveler(r, traveler)).toLocaleString()}</p>
-                        {parseTravelerIds(r).length > 1 && (
-                          <p className="text-[10px] text-c-muted">${r.priceUSD.toLocaleString()} ÷ {parseTravelerIds(r).length}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-white/10 border-b border-white/10">
+                      <tr>
+                        <th className="text-left px-5 py-2 text-[10px] text-c-muted uppercase tracking-wide">Reserva</th>
+                        <th className="text-left px-3 py-2 text-[10px] text-c-muted uppercase tracking-wide">Fecha</th>
+                        <th className="text-right px-3 py-2 text-[10px] text-c-muted uppercase tracking-wide">Original</th>
+                        <th className="text-right px-3 py-2 text-[10px] text-c-muted uppercase tracking-wide">Mi parte</th>
+                        <th className="text-right px-3 py-2 text-[10px] text-green-600 uppercase tracking-wide">Pagado</th>
+                        <th className="text-right px-3 py-2 text-[10px] text-amber-600 uppercase tracking-wide">Saldo</th>
+                        <th className="text-left px-3 py-2 text-[10px] text-c-muted uppercase tracking-wide">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.06]">
+                      {myReservations.length === 0 && (
+                        <tr><td colSpan={7} className="text-c-muted px-5 py-3 text-center">Sin reservas asignadas.</td></tr>
+                      )}
+                      {myReservations.map((r) => {
+                        const miParte = Math.round(getCostForTraveler(r, traveler));
+                        const miPagado = r.paid ? miParte : 0;
+                        const miSaldo = miParte - miPagado;
+                        return (
+                          <tr key={r.id} className="hover:bg-white/[0.03]">
+                            <td className="px-5 py-2.5 font-medium text-c-heading">{r.title}</td>
+                            <td className="px-3 py-2.5 text-c-muted whitespace-nowrap">{formatDateShort(r.startDate)}</td>
+                            <td className="px-3 py-2.5 text-right text-c-muted">{formatMoney(r.price, r.currency)}</td>
+                            <td className="px-3 py-2.5 text-right font-medium text-c-heading">${miParte.toLocaleString()}</td>
+                            <td className="px-3 py-2.5 text-right font-medium text-green-600">{miPagado > 0 ? `$${miPagado.toLocaleString()}` : "—"}</td>
+                            <td className="px-3 py-2.5 text-right font-medium text-amber-600">{miSaldo > 0 ? `$${miSaldo.toLocaleString()}` : "—"}</td>
+                            <td className="px-3 py-2.5"><EstadoBadge estado={r.status} /></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             );
           })}
         </div>
       )}
+
+      {vista === "presupuesto" && (() => {
+        const totalAll = reservations.reduce((s, r) => s + r.priceUSD, 0);
+        const pagadoAll = reservations.filter((r) => r.paid).reduce((s, r) => s + r.priceUSD, 0);
+        const saldoAll = totalAll - pagadoAll;
+
+        // Por viajero
+        const byTraveler = travelers.map((t) => {
+          const myR = reservations.filter((r) => {
+            const ids = parseTravelerIds(r);
+            return ids.length === 0 || ids.includes(t.id);
+          });
+          const costo = Math.round(myR.reduce((s, r) => s + getCostForTraveler(r, t), 0));
+          const pagado = Math.round(myR.filter((r) => r.paid).reduce((s, r) => s + getCostForTraveler(r, t), 0));
+          // quién pagó por ellos
+          const pagoPorMi = Math.round(myR.reduce((s, r) => {
+            const payer = travelers.find((x) => x.id === r.paidBy);
+            if (payer && payer.id !== t.id && r.paid) return s + getCostForTraveler(r, t);
+            return s;
+          }, 0));
+          return { name: t.name, color: t.color, costo, pagado, saldo: costo - pagado, pagoPorMi };
+        });
+
+        // Por tipo
+        const byType = RESERVATION_TYPES.map((type) => ({
+          name: CATEGORIA_LABELS[type] ?? type,
+          value: Math.round(reservations.filter((r) => r.type === type).reduce((s, r) => s + r.priceUSD, 0)),
+        })).filter((x) => x.value > 0);
+
+        return (
+          <div className="space-y-6">
+            {/* Summary cards */}
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { label: "Total viaje", value: totalAll, color: "text-c-heading" },
+                { label: "Ya pagado", value: pagadoAll, color: "text-green-600 dark:text-green-400" },
+                { label: "Por pagar", value: saldoAll, color: "text-amber-600 dark:text-amber-400" },
+              ].map((s) => (
+                <div key={s.label} className="glass-card rounded-2xl p-4 text-center">
+                  <p className={`text-2xl font-bold ${s.color}`}>${Math.round(s.value).toLocaleString()}</p>
+                  <p className="text-xs text-c-muted mt-1 uppercase tracking-wider">{s.label}</p>
+                  <p className="text-[10px] text-c-subtle mt-0.5">USD</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Gráfico 1: Costo total por viajero */}
+            <div className="glass-card rounded-2xl p-5">
+              <h3 className="text-sm font-semibold text-c-heading mb-4">Costo del viaje por viajero</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={byTraveler} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+                  <Tooltip formatter={(v: number) => [`$${v.toLocaleString()} USD`, ""]} />
+                  <Bar dataKey="costo" radius={[6, 6, 0, 0]}>
+                    {byTraveler.map((t) => <Cell key={t.name} fill={t.color} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Gráfico 2: Pagado vs Saldo por viajero */}
+            <div className="glass-card rounded-2xl p-5">
+              <h3 className="text-sm font-semibold text-c-heading mb-4">Pagado vs Saldo por viajero</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={byTraveler} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+                  <Tooltip formatter={(v: number) => [`$${v.toLocaleString()} USD`, ""]} />
+                  <Legend />
+                  <Bar dataKey="pagado" name="Pagado" fill="#22c55e" radius={[4, 4, 0, 0]} stackId="a" />
+                  <Bar dataKey="saldo" name="Saldo" fill="#f59e0b" radius={[4, 4, 0, 0]} stackId="a" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Gráfico 3: Distribución por tipo de reserva */}
+            <div className="glass-card rounded-2xl p-5">
+              <h3 className="text-sm font-semibold text-c-heading mb-4">Distribución por categoría</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={byType} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                    {byType.map((_, i) => (
+                      <Cell key={i} fill={["#6366f1","#f59e0b","#10b981","#f43f5e","#3b82f6","#8b5cf6"][i % 6]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v: number) => [`$${v.toLocaleString()} USD`, ""]} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Tabla de balances */}
+            <div className="glass-card rounded-2xl overflow-hidden">
+              <div className="px-5 py-3 border-b border-white/10">
+                <h3 className="text-sm font-semibold text-c-heading">Balance por viajero</h3>
+              </div>
+              <table className="w-full text-sm">
+                <thead className="bg-white/10 border-b border-white/10">
+                  <tr>
+                    <th className="text-left px-5 py-2.5 text-[10px] text-c-muted uppercase tracking-wide">Viajero</th>
+                    <th className="text-right px-4 py-2.5 text-[10px] text-c-muted uppercase tracking-wide">Le corresponde</th>
+                    <th className="text-right px-4 py-2.5 text-[10px] text-green-600 uppercase tracking-wide">Pagado</th>
+                    <th className="text-right px-4 py-2.5 text-[10px] text-amber-600 uppercase tracking-wide">Saldo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.06]">
+                  {byTraveler.map((t) => (
+                    <tr key={t.name}>
+                      <td className="px-5 py-3 flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={{ backgroundColor: t.color }}>{t.name[0]}</span>
+                        <span className="font-medium text-c-heading">{t.name}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium">${t.costo.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-medium text-green-600">${t.pagado.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-medium text-amber-600">{t.saldo > 0 ? `$${t.saldo.toLocaleString()}` : "✓ Al día"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
 
       {modalOpen && (
         <ReservationModal
