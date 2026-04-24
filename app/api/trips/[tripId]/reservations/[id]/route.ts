@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -36,34 +37,60 @@ export async function PUT(
     const { tripId, id } = await params;
     const body = await request.json();
 
-    console.log("[PUT] Raw body:", JSON.stringify(body));
-    console.log("[PUT] Body keys:", Object.keys(body));
+    // Strip non-updateable fields
+    const { id: _id, tripId: _tid, createdAt: _ca, trip: _trip, expenses: _exp, ...updateData } = body;
 
-    // Strip relational/immutable fields before passing to Prisma
-    const { id: _id, tripId: _tid, createdAt: _ca, trip: _trip, expenses: _exp, ...data } = body;
-
-    console.log("[PUT] Data after strip:", JSON.stringify(data));
-
-    // Ensure travelerIds is a string (not an array)
-    if (Array.isArray(data.travelerIds)) {
-      data.travelerIds = JSON.stringify(data.travelerIds);
+    // Normalize travelerIds to string
+    if (Array.isArray(updateData.travelerIds)) {
+      updateData.travelerIds = JSON.stringify(updateData.travelerIds);
     }
 
-    console.log("[PUT] Final data:", JSON.stringify(data));
+    console.log("[PUT] Updating reservation", id);
 
-    const reservation = await prisma.reservation.update({
-      where: { id },
-      data,
-    });
+    // Build SET clause for raw SQL
+    const setClauses: string[] = [];
+    const values: any[] = [];
 
-    console.log("[PUT] SUCCESS:", reservation.id);
-    return NextResponse.json(reservation);
+    for (const [key, value] of Object.entries(updateData)) {
+      if (value === undefined) continue;
+      setClauses.push(`"${key}" = ?`);
+      values.push(value);
+    }
+
+    if (setClauses.length === 0) {
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    }
+
+    values.push(id);
+    const sql = `UPDATE "reservations" SET ${setClauses.join(", ")} WHERE "id" = ?`;
+
+    console.log("[PUT] SQL:", sql);
+    console.log("[PUT] Values count:", values.length);
+
+    // Execute update
+    await prisma.$executeRaw`
+      UPDATE "reservations"
+      SET ${Prisma.raw(setClauses.join(", "))}
+      WHERE "id" = ${id}
+    `;
+
+    // Fetch the updated record
+    const result = await prisma.$queryRaw<any[]>`
+      SELECT * FROM "reservations" WHERE "id" = ${id}
+    `;
+
+    if (!result || result.length === 0) {
+      return NextResponse.json({ error: "Reservation not found after update" }, { status: 404 });
+    }
+
+    console.log("[PUT] SUCCESS:", id);
+    return NextResponse.json(result[0]);
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : "";
-    console.error("[PUT] FULL ERROR:", msg);
+    console.error("[PUT] ERROR:", msg);
     console.error("[PUT] STACK:", stack);
-    return NextResponse.json({ error: msg, details: stack }, { status: 500 });
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
