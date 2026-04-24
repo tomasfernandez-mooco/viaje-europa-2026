@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo } from "react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
 import { Reservation, TripMember, Traveler, RESERVATION_TYPES, ESTADOS, CATEGORIA_LABELS, MONEDAS, MONEDA_SYMBOLS, PROVIDER_SUGGESTIONS, formatMoney, formatDateShort, toUSD } from "@/lib/types";
 import { EstadoBadge, PrioridadBadge } from "./StatusBadge";
 
@@ -21,7 +22,8 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
   const [editing, setEditing] = useState<Reservation | null>(null);
   const [sortKey, setSortKey] = useState<"startDate" | "title" | "city" | "priceUSD" | "status">("startDate");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [vista, setVista] = useState<"reservas" | "viajeros">("reservas");
+  const [vista, setVista] = useState<"reservas" | "viajeros" | "presupuesto">("reservas");
+  const [filtroViajero, setFiltroViajero] = useState("");
 
   function handleSort(key: typeof sortKey) {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
