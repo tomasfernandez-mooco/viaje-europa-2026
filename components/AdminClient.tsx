@@ -24,6 +24,29 @@ export default function AdminClient({
   const [trips, setTrips] = useState(initialTrips);
   const [assigningTripId, setAssigningTripId] = useState<string | null>(null);
   const [assignUserId, setAssignUserId] = useState("");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionResult, setActionResult] = useState<{ action: string; message: string; ok: boolean } | null>(null);
+
+  async function runAdminAction(action: string, url: string) {
+    setActionLoading(action);
+    setActionResult(null);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "x-admin-secret": "europa2026-admin" },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionResult({ action, message: `OK — ${JSON.stringify(data)}`, ok: true });
+      } else {
+        setActionResult({ action, message: data.error ?? "Error desconocido", ok: false });
+      }
+    } catch (e: any) {
+      setActionResult({ action, message: e.message, ok: false });
+    } finally {
+      setActionLoading(null);
+    }
+  }
 
   async function deleteUser(userId: string) {
     if (!confirm("Eliminar este usuario? Sus viajes sin reasignar quedarán huérfanos.")) return;
@@ -152,6 +175,38 @@ export default function AdminClient({
               })}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Admin Actions */}
+      <div className="mb-8">
+        <h2 className="text-sm font-semibold text-c-muted dark:text-slate-400 uppercase tracking-widest mb-3">
+          Acciones
+        </h2>
+        <div className="glass-card rounded-2xl p-4 space-y-3">
+          {[
+            { action: "load-italy-itinerary", label: "Cargar itinerario Italia + Berlín (Jul 17–31)", url: "/api/admin/load-italy-itinerary" },
+            { action: "run-migrations", label: "Ejecutar migraciones", url: "/api/admin/run-migrations" },
+            { action: "update-breakdown", label: "Recalcular división de gastos", url: "/api/admin/update-reservation-breakdown" },
+          ].map(({ action, label, url }) => (
+            <div key={action} className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={() => runAdminAction(action, url)}
+                disabled={actionLoading === action}
+                className="text-sm bg-accent text-white px-4 py-2 rounded-xl hover:bg-terra-500 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {actionLoading === action && (
+                  <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                )}
+                {label}
+              </button>
+              {actionResult?.action === action && (
+                <span className={`text-xs px-2 py-1 rounded-lg ${actionResult.ok ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                  {actionResult.message}
+                </span>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
