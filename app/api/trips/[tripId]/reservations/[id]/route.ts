@@ -35,15 +35,22 @@ export async function PUT(
   try {
     const { tripId, id } = await params;
     const body = await request.json();
-    console.log("[PUT reservation] Saving id:", id, "with keys:", Object.keys(body));
 
-    // Use Prisma to update - it handles serialization
+    // Strip relational/immutable fields before passing to Prisma
+    const { id: _id, tripId: _tid, createdAt: _ca, trip: _trip, expenses: _exp, ...data } = body;
+
+    // Ensure travelerIds is a string (not an array)
+    if (Array.isArray(data.travelerIds)) {
+      data.travelerIds = JSON.stringify(data.travelerIds);
+    }
+
+    console.log("[PUT reservation] Updating", id, "- costBreakdown:", data.costBreakdown);
+
     const reservation = await prisma.reservation.update({
       where: { id },
-      data: body,
+      data,
     });
 
-    console.log("[PUT reservation] SUCCESS - saved:", reservation.id);
     return NextResponse.json(reservation);
   } catch (error) {
     console.error("[PUT reservation] ERROR:", error instanceof Error ? error.message : String(error));
