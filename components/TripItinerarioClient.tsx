@@ -186,6 +186,14 @@ export default function TripItinerarioClient({
 
   const dates = generateDateRange(startDate, endDate);
 
+  // Build map of dates to cities from itinerary items
+  const citiesByDate = items.reduce((acc, item) => {
+    if (!acc[item.date] && item.city) {
+      acc[item.date] = `${item.city}${item.country ? `, ${item.country}` : ""}`;
+    }
+    return acc;
+  }, {} as Record<string, string>);
+
   // Fetch custom day titles on mount
   useEffect(() => {
     const fetchDayTitles = async () => {
@@ -408,7 +416,7 @@ export default function TripItinerarioClient({
                         type="text"
                         value={dayTitleText}
                         onChange={(e) => setDayTitleText(e.target.value)}
-                        placeholder={loc ? `${loc.city}${loc.country ? `, ${loc.country}` : ""}` : `Ciudad, País`}
+                        placeholder={loc ? `${loc.city}${loc.country ? `, ${loc.country}` : ""}` : citiesByDate[fecha] || `Ciudad, País`}
                         className="text-xs font-medium px-2.5 py-0.5 rounded-xl bg-white/20 border border-white/30 text-c-text focus:outline-none focus:border-accent min-w-[160px]"
                         autoFocus
                         onKeyDown={(e) => { if (e.key === "Enter") handleSaveDayTitle(fecha); if (e.key === "Escape") setEditingDayTitle(null); }}
@@ -432,11 +440,11 @@ export default function TripItinerarioClient({
                         {`Día ${index + 1}`}
                       </span>
                       <button
-                        onClick={() => { setEditingDayTitle(fecha); setDayTitleText(dayTitles[fecha] ?? (loc ? `${loc.city}${loc.country ? `, ${loc.country}` : ""}` : "")); }}
+                        onClick={() => { setEditingDayTitle(fecha); setDayTitleText(dayTitles[fecha] ?? (loc ? `${loc.city}${loc.country ? `, ${loc.country}` : ""}` : citiesByDate[fecha] ?? "")); }}
                         className="text-sm font-medium text-c-muted hover:text-accent transition-colors group flex items-center gap-1"
                         title="Editar nombre de ciudad"
                       >
-                        {dayTitles[fecha] || (loc ? `${loc.city}${loc.country ? `, ${loc.country}` : ""}` : "Agregar ciudad...")}
+                        {dayTitles[fecha] || (loc ? `${loc.city}${loc.country ? `, ${loc.country}` : ""}` : citiesByDate[fecha] || "Agregar ciudad...")}
                         <svg className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                         </svg>
