@@ -49,11 +49,7 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
 
   async function handleSave(data: Partial<Reservation>) {
     if (editing) {
-      const updated = { ...editing, ...data };
       const prev = reservations;
-      setReservations((r) => r.map((x) => (x.id === editing.id ? updated : x)));
-      setModalOpen(false);
-      setEditing(null);
       const payload = { ...editing, ...data };
       console.log("[handleSave] Updating with payload:", { id: editing.id, costBreakdown: payload.costBreakdown });
       const res = await fetch(`/api/trips/${tripId}/reservations/${editing.id}`, {
@@ -63,12 +59,14 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
       });
       if (!res.ok) {
         console.error("[handleSave] Failed:", res.status, res.statusText);
-        setReservations(prev);
-      } else {
-        const saved = await res.json();
-        console.log("[handleSave] Success:", saved.id);
-        setReservations((r) => r.map((x) => (x.id === editing.id ? saved : x)));
+        alert("Error al guardar: " + res.statusText);
+        return;
       }
+      const saved = await res.json();
+      console.log("[handleSave] Success:", saved.id);
+      setReservations((r) => r.map((x) => (x.id === editing.id ? saved : x)));
+      setModalOpen(false);
+      setEditing(null);
     } else {
       const tempId = `temp-${Date.now()}`;
       const optimistic: Reservation = { id: tempId, tripId, createdAt: new Date().toISOString(), ...data } as Reservation;
