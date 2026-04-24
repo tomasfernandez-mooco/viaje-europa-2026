@@ -35,8 +35,10 @@ export async function PUT(
   try {
     const { tripId, id } = await params;
     const body = await request.json();
+    console.log("[PUT reservation] id:", id, "body keys:", Object.keys(body));
     // Strip non-Prisma fields and serialize travelerIds
     const { travelerIds, tripId: _tid, createdAt: _ca, id: _id, trip: _trip, ...rest } = body;
+    console.log("[PUT reservation] rest keys:", Object.keys(rest), "costBreakdown:", rest.costBreakdown);
     const reservation = await prisma.reservation.update({
       where: { id, tripId },
       data: {
@@ -46,9 +48,10 @@ export async function PUT(
         }),
       },
     });
+    console.log("[PUT reservation] SUCCESS id:", reservation.id);
     return NextResponse.json(reservation);
   } catch (error) {
-    console.error("Error updating reservation:", error);
+    console.error("[PUT reservation] ERROR:", error instanceof Error ? error.message : error);
     return NextResponse.json({ error: "Failed to update reservation" }, { status: 500 });
   }
 }
