@@ -22,7 +22,7 @@ async function runMigrations() {
       results[label] = e instanceof Error ? e.message : String(e);
     }
   }
-  return results;
+  return { success: true, results };
 }
 
 export async function GET(req: Request) {

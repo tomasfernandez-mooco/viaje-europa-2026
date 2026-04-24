@@ -51,12 +51,10 @@ export async function POST(request: NextRequest) {
 
       const costBreakdown = JSON.stringify(breakdown);
 
-      // Update the reservation - set both costBreakdown and paidBy (Tomas)
-      await prisma.$executeRaw`
-        UPDATE "reservations"
-        SET "costBreakdown" = ${costBreakdown}, "paidBy" = ${TOMAS_ID}
-        WHERE "id" = ${reservation.id}
-      `;
+      await prisma.reservation.update({
+        where: { id: reservation.id },
+        data: { costBreakdown, paidBy: TOMAS_ID },
+      });
 
       updated++;
     }
