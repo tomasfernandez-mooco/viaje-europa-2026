@@ -1,6 +1,6 @@
 "use client";
 import { useState, useMemo } from "react";
-import { Reservation, TripMember, RESERVATION_TYPES, ESTADOS, CATEGORIA_LABELS, MONEDAS, MONEDA_SYMBOLS, PROVIDER_SUGGESTIONS, formatMoney, formatDateShort, toUSD } from "@/lib/types";
+import { Reservation, TripMember, Traveler, RESERVATION_TYPES, ESTADOS, CATEGORIA_LABELS, MONEDAS, MONEDA_SYMBOLS, PROVIDER_SUGGESTIONS, formatMoney, formatDateShort, toUSD } from "@/lib/types";
 import { EstadoBadge, PrioridadBadge } from "./StatusBadge";
 
 type Props = {
@@ -8,10 +8,11 @@ type Props = {
   reservations: Reservation[];
   config: Record<string, string>;
   members: TripMember[];
+  travelers: Traveler[];
   itineraryDates?: string[];
 };
 
-export default function TripReservasClient({ tripId, reservations: initial, config, members, itineraryDates = [] }: Props) {
+export default function TripReservasClient({ tripId, reservations: initial, config, members, travelers, itineraryDates = [] }: Props) {
   const [reservations, setReservations] = useState(initial);
   const [filtroType, setFiltroType] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
@@ -109,21 +110,20 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
     try { return JSON.parse(r.travelerIds ?? "[]"); } catch { return []; }
   }
 
-  function costPerTraveler(r: Reservation, totalMembers?: number): number {
+  function parseBreakdown(r: Reservation): Record<string, number> {
+    try { return JSON.parse(r.costBreakdown ?? "{}"); } catch { return {}; }
+  }
+
+  function travelerById(id: string): Traveler | undefined {
+    return travelers.find((t) => t.id === id);
+  }
+
+  function getCostForTraveler(r: Reservation, traveler: Traveler): number {
+    const breakdown = parseBreakdown(r);
+    if (breakdown[traveler.id] !== undefined) return breakdown[traveler.id];
     const ids = parseTravelerIds(r);
-    const count = ids.length || totalMembers || r.travelers || 1;
+    const count = ids.length || 1;
     return r.priceUSD / count;
-  }
-
-  const MEMBER_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"];
-
-  function memberColor(userId: string): string {
-    const idx = members.findIndex((m) => m.userId === userId);
-    return MEMBER_COLORS[idx % MEMBER_COLORS.length] ?? "#6366f1";
-  }
-
-  function memberName(userId: string): string {
-    return members.find((m) => m.userId === userId)?.user.name ?? userId.slice(0, 6);
   }
 
   return (
@@ -263,16 +263,19 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
                     <td className="px-4 py-3">
                       <div className="flex gap-1 flex-wrap">
                         {parseTravelerIds(r).length > 0
-                          ? parseTravelerIds(r).map((uid) => (
-                              <span
-                                key={uid}
-                                title={memberName(uid)}
-                                className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-semibold text-white"
-                                style={{ backgroundColor: memberColor(uid) }}
-                              >
-                                {memberName(uid).charAt(0).toUpperCase()}
-                              </span>
-                            ))
+                          ? parseTravelerIds(r).map((tid) => {
+                              const traveler = travelerById(tid);
+                              return (
+                                <span
+                                  key={tid}
+                                  title={traveler?.name ?? tid}
+                                  className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-semibold text-white"
+                                  style={{ backgroundColor: traveler?.color ?? "#6366f1" }}
+                                >
+                                  {(traveler?.name ?? tid).charAt(0).toUpperCase()}
+                                </span>
+                              );
+                            })
                           : <span className="text-xs text-c-subtle">{r.travelers}</span>
                         }
                       </div>
@@ -335,28 +338,28 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
 
       {vista === "viajeros" && (
         <div className="space-y-4">
-          {members.length === 0 && (
+          {travelers.length === 0 && (
             <p className="text-sm text-c-muted text-center py-8">No hay viajeros en este viaje.</p>
           )}
-          {members.map((member) => {
+          {travelers.map((traveler) => {
             const myReservations = reservations.filter((r) => {
               const ids = parseTravelerIds(r);
-              return ids.length === 0 || ids.includes(member.userId);
+              return ids.length === 0 || ids.includes(traveler.id);
             });
-            const total = myReservations.reduce((s, r) => s + costPerTraveler(r, members.length), 0);
+            const total = myReservations.reduce((s, r) => s + getCostForTraveler(r, traveler), 0);
             return (
-              <div key={member.userId} className="glass-card rounded-2xl overflow-hidden">
+              <div key={traveler.id} className="glass-card rounded-2xl overflow-hidden">
                 <div className="px-5 py-4 flex items-center justify-between border-b border-white/10">
                   <div className="flex items-center gap-3">
                     <span
                       className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm"
-                      style={{ backgroundColor: memberColor(member.userId) }}
+                      style={{ backgroundColor: traveler.color }}
                     >
-                      {member.user.name.charAt(0).toUpperCase()}
+                      {traveler.name.charAt(0).toUpperCase()}
                     </span>
                     <div>
-                      <p className="font-medium text-c-heading text-sm">{member.user.name}</p>
-                      <p className="text-xs text-c-muted capitalize">{member.role}</p>
+                      <p className="font-medium text-c-heading text-sm">{traveler.name}</p>
+                      <p className="text-xs text-c-muted capitalize">{traveler.role ?? "viajero"}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -376,7 +379,7 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
                         <span className="text-c-subtle text-xs shrink-0">{r.city}</span>
                       </div>
                       <div className="text-right ml-4 shrink-0">
-                        <p className="font-medium text-c-heading">${Math.round(costPerTraveler(r, members.length)).toLocaleString()}</p>
+                        <p className="font-medium text-c-heading">${Math.round(getCostForTraveler(r, traveler)).toLocaleString()}</p>
                         {parseTravelerIds(r).length > 1 && (
                           <p className="text-[10px] text-c-muted">${r.priceUSD.toLocaleString()} ÷ {parseTravelerIds(r).length}</p>
                         )}
@@ -395,7 +398,7 @@ export default function TripReservasClient({ tripId, reservations: initial, conf
           reservation={editing}
           tcEurUsd={tcEurUsd}
           tcArsMep={tcArsMep}
-          members={members}
+          travelers={travelers}
           itineraryDates={itineraryDates}
           onSave={handleSave}
           onClose={() => { setModalOpen(false); setEditing(null); }}
@@ -409,7 +412,7 @@ function ReservationModal({
   reservation,
   tcEurUsd,
   tcArsMep,
-  members,
+  travelers,
   itineraryDates = [],
   onSave,
   onClose,
@@ -417,19 +420,19 @@ function ReservationModal({
   reservation: Reservation | null;
   tcEurUsd: number;
   tcArsMep: number;
-  members: TripMember[];
+  travelers: Traveler[];
   itineraryDates?: string[];
   onSave: (data: Partial<Reservation>) => void;
   onClose: () => void;
 }) {
-  const allMemberIds = members.map((m) => m.userId);
+  const allTravelerIds = travelers.map((t) => t.id);
 
   const empty: Partial<Reservation> = {
     type: "alojamiento", title: "", city: "", country: "Italia",
     startDate: "2026-07-", status: "por-reservar", priority: "media",
-    currency: "EUR", price: 0, priceUSD: 0, travelers: members.length || 2,
+    currency: "EUR", price: 0, priceUSD: 0, travelers: travelers.length || 2,
     freeCancellation: false, paid: false,
-    travelerIds: JSON.stringify(allMemberIds),
+    travelerIds: JSON.stringify(allTravelerIds),
   };
   const [form, setForm] = useState<Partial<Reservation>>(reservation ?? empty);
   const [isUploading, setIsUploading] = useState(false);
@@ -437,16 +440,34 @@ function ReservationModal({
   const inputClass = "glass-input";
   const labelClass = "block text-xs font-medium text-c-muted mb-1";
 
-  // Parse travelerIds for checkboxes
-  const selectedIds: string[] = (() => {
-    try { return JSON.parse(form.travelerIds ?? "null") ?? allMemberIds; } catch { return allMemberIds; }
-  })();
+  function parseTravelerIds(r: Partial<Reservation>): string[] {
+    try { return JSON.parse(r.travelerIds ?? "null") ?? allTravelerIds; } catch { return allTravelerIds; }
+  }
 
-  function toggleMember(userId: string) {
-    const next = selectedIds.includes(userId)
-      ? selectedIds.filter((id) => id !== userId)
-      : [...selectedIds, userId];
-    setForm((f) => ({ ...f, travelerIds: JSON.stringify(next), travelers: next.length }));
+  function parseBreakdown(r: Partial<Reservation>): Record<string, number> {
+    try { return JSON.parse(r.costBreakdown ?? "{}"); } catch { return {}; }
+  }
+
+  const selectedIds = parseTravelerIds(form);
+  const breakdown = parseBreakdown(form);
+
+  function toggleTraveler(travelerId: string) {
+    const next = selectedIds.includes(travelerId)
+      ? selectedIds.filter((id) => id !== travelerId)
+      : [...selectedIds, travelerId];
+    const newBreakdown = { ...breakdown };
+    if (!next.includes(travelerId)) delete newBreakdown[travelerId];
+    setForm((f) => ({
+      ...f,
+      travelerIds: JSON.stringify(next),
+      travelers: next.length,
+      costBreakdown: JSON.stringify(newBreakdown),
+    }));
+  }
+
+  function updateBreakdownAmount(travelerId: string, amount: number) {
+    const newBreakdown = { ...breakdown, [travelerId]: amount };
+    setForm((f) => ({ ...f, costBreakdown: JSON.stringify(newBreakdown) }));
   }
 
   function update(field: string, value: string | number | boolean) {
@@ -479,7 +500,6 @@ function ReservationModal({
 
       const data = await res.json();
 
-      // Pre-fill form with extracted data
       setForm((f) => ({
         ...f,
         title: data.title || f.title,
@@ -502,7 +522,6 @@ function ReservationModal({
     }
   }
 
-  // Provider suggestion
   const suggestion = PROVIDER_SUGGESTIONS[form.type === "alojamiento" ? (form.subtype ?? "hotel") : (form.type ?? "")];
 
   return (
@@ -673,34 +692,68 @@ function ReservationModal({
               rows={2} placeholder="Accion requerida..." className={`${inputClass} !border-amber-200/50 !bg-amber-50/30 resize-none`} />
           </div>
 
-          {members.length > 0 && (
+          {travelers.length > 0 && (
             <div>
-              <label className={labelClass}>
-                Viajeros incluidos
-                {(form.priceUSD ?? 0) > 0 && selectedIds.length > 0 && (
-                  <span className="ml-2 text-accent font-medium">
-                    ${Math.round((form.priceUSD ?? 0) / selectedIds.length).toLocaleString()} USD / persona
-                  </span>
-                )}
-              </label>
+              <label className={labelClass}>Viajeros incluidos</label>
               <div className="flex flex-wrap gap-2 mt-1">
-                {members.map((m) => {
-                  const selected = selectedIds.includes(m.userId);
+                {travelers.map((traveler) => {
+                  const selected = selectedIds.includes(traveler.id);
                   return (
                     <button
-                      key={m.userId}
+                      key={traveler.id}
                       type="button"
-                      onClick={() => toggleMember(m.userId)}
+                      onClick={() => toggleTraveler(traveler.id)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
                         selected
                           ? "bg-accent/20 border-accent/40 text-accent"
                           : "bg-white/[0.04] border-white/10 text-c-muted hover:border-white/20"
                       }`}
                     >
-                      {m.user.name}
+                      {traveler.name}
                     </button>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {selectedIds.length > 0 && (form.priceUSD ?? 0) > 0 && (
+            <div className="p-4 rounded-xl bg-accent/5 border border-accent/20">
+              <label className={`${labelClass} mb-3`}>División de costos (USD)</label>
+              <div className="space-y-2">
+                {selectedIds.map((tid) => {
+                  const traveler = travelers.find((t) => t.id === tid);
+                  const amount = breakdown[tid] ?? Math.round((form.priceUSD ?? 0) / selectedIds.length);
+                  return (
+                    <div key={tid} className="flex items-center gap-2">
+                      <span
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
+                        style={{ backgroundColor: traveler?.color ?? "#6366f1" }}
+                      >
+                        {(traveler?.name ?? tid).charAt(0).toUpperCase()}
+                      </span>
+                      <span className="text-xs text-c-muted flex-1 min-w-0">{traveler?.name ?? tid}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-c-muted">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={amount}
+                          onChange={(e) => updateBreakdownAmount(tid, parseFloat(e.target.value) || 0)}
+                          className="glass-input !py-1 !px-2 text-xs w-20"
+                        />
+                        <span className="text-xs text-c-muted">USD</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-3 pt-3 border-t border-accent/20 flex justify-between">
+                <span className="text-xs font-medium text-c-muted">Total asignado</span>
+                <span className="text-xs font-semibold text-accent">
+                  ${Object.values(breakdown).reduce((s, v) => s + v, 0).toLocaleString()} USD
+                </span>
               </div>
             </div>
           )}
