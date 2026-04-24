@@ -448,8 +448,8 @@ function ReservationModal({
     try { return JSON.parse(r.costBreakdown ?? "{}"); } catch { return {}; }
   }
 
-  const selectedIds = parseTravelerIds(form);
-  const breakdown = parseBreakdown(form);
+  const selectedIds = useMemo(() => parseTravelerIds(form), [form]);
+  const breakdown = useMemo(() => parseBreakdown(form), [form]);
 
   function toggleTraveler(travelerId: string) {
     const next = selectedIds.includes(travelerId)
