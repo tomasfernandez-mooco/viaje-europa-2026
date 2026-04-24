@@ -403,6 +403,7 @@ export default function TripReservasClient({ tripId, reservations: initial = [],
                         <th className="text-right px-3 py-2 text-[10px] text-c-muted uppercase tracking-wide">Mi parte</th>
                         <th className="text-right px-3 py-2 text-[10px] text-green-600 uppercase tracking-wide">Pagado</th>
                         <th className="text-right px-3 py-2 text-[10px] text-amber-600 uppercase tracking-wide">Saldo</th>
+                        <th className="text-center px-3 py-2 text-[10px] text-c-muted uppercase tracking-wide">Pagó</th>
                         <th className="text-left px-3 py-2 text-[10px] text-c-muted uppercase tracking-wide">Estado</th>
                       </tr>
                     </thead>
@@ -414,14 +415,22 @@ export default function TripReservasClient({ tripId, reservations: initial = [],
                         const miParte = Math.round(getCostForTraveler(r, traveler));
                         const miPagado = r.paid ? miParte : 0;
                         const miSaldo = miParte - miPagado;
+                        const paidByTraveler = travelers.find((t) => t.id === r.paidBy);
                         return (
                           <tr key={r.id} className="hover:bg-white/[0.03]">
                             <td className="px-5 py-2.5 font-medium text-c-heading">{r.title}</td>
                             <td className="px-3 py-2.5 text-c-muted whitespace-nowrap">{formatDateShort(r.startDate)}</td>
                             <td className="px-3 py-2.5 text-right text-c-muted">{formatMoney(r.price, r.currency)}</td>
                             <td className="px-3 py-2.5 text-right font-medium text-c-heading">${miParte.toLocaleString()}</td>
-                            <td className="px-3 py-2.5 text-right font-medium text-green-600">{miPagado > 0 ? `$${miPagado.toLocaleString()}` : "—"}</td>
-                            <td className="px-3 py-2.5 text-right font-medium text-amber-600">{miSaldo > 0 ? `$${miSaldo.toLocaleString()}` : "—"}</td>
+                            <td className="px-3 py-2.5 text-right font-medium text-green-600">${miPagado.toLocaleString()}</td>
+                            <td className="px-3 py-2.5 text-right font-medium text-amber-600">${miSaldo.toLocaleString()}</td>
+                            <td className="px-3 py-2.5 text-center">
+                              {paidByTraveler ? (
+                                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[10px] font-bold" style={{ backgroundColor: paidByTraveler.color }} title={paidByTraveler.name}>
+                                  {paidByTraveler.name[0].toUpperCase()}
+                                </span>
+                              ) : <span className="text-c-subtle text-[10px]">—</span>}
+                            </td>
                             <td className="px-3 py-2.5"><EstadoBadge estado={r.status} /></td>
                           </tr>
                         );

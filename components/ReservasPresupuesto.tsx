@@ -126,7 +126,7 @@ export default function ReservasPresupuesto({ reservations = [], travelers: init
                 </td>
                 <td className="px-4 py-3 text-right font-medium">${t.costo.toLocaleString()}</td>
                 <td className="px-4 py-3 text-right font-medium text-green-600">${t.pagado.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right font-medium text-amber-600">{t.saldo > 0 ? `$${t.saldo.toLocaleString()}` : "✓ Al día"}</td>
+                <td className="px-4 py-3 text-right font-medium text-amber-600">${t.saldo.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
