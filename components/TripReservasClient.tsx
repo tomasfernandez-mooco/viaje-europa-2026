@@ -122,11 +122,17 @@ export default function TripReservasClient({ tripId, reservations: initial = [],
   const inputClass = "glass-input !py-1.5 !px-3 text-sm";
 
   function parseTravelerIds(r: Reservation): string[] {
-    try { return JSON.parse(r.travelerIds ?? "[]"); } catch { return []; }
+    try {
+      const parsed = JSON.parse(r.travelerIds ?? "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
   }
 
   function parseBreakdown(r: Reservation): Record<string, number> {
-    try { return JSON.parse(r.costBreakdown ?? "{}"); } catch { return {}; }
+    try {
+      const parsed = JSON.parse(r.costBreakdown ?? "{}");
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch { return {}; }
   }
 
   function travelerById(id: string): Traveler | undefined {
@@ -486,11 +492,17 @@ function ReservationModal({
   const labelClass = "block text-xs font-medium text-c-muted mb-1";
 
   function parseTravelerIds(r: Partial<Reservation>): string[] {
-    try { return JSON.parse(r.travelerIds ?? "null") ?? allTravelerIds; } catch { return allTravelerIds; }
+    try {
+      const parsed = JSON.parse(r.travelerIds ?? "null");
+      return Array.isArray(parsed) ? parsed : allTravelerIds;
+    } catch { return allTravelerIds; }
   }
 
   function parseBreakdown(r: Partial<Reservation>): Record<string, number> {
-    try { return JSON.parse(r.costBreakdown ?? "{}"); } catch { return {}; }
+    try {
+      const parsed = JSON.parse(r.costBreakdown ?? "{}");
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch { return {}; }
   }
 
   const selectedIds = useMemo(() => parseTravelerIds(form), [form]);
