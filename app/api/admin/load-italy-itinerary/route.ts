@@ -25,17 +25,17 @@ const ITINERARY_ITEMS = [
   // 20 Jul (LUN) - Val d'Orcia + Chianti
   { date: "2026-07-20", time: "09:00", title: "Pienza: queso Pecorino + mercado", city: "Pienza", country: "Italia", category: "actividad", description: "Pueblo renacentista" },
   { date: "2026-07-20", time: "11:00", title: "Montalcino o Montepulciano", city: "Montalcino", country: "Italia", category: "actividad", description: "Pueblos medievales en la colina" },
-  { date: "2026-07-20", time: "14:00", title: "Ruta del Chianti: bodega con degustación", city: "Chianti", country: "Italia", category: "actividad", description: "Vino Brunello o Chianti Classico" },
+  { date: "2026-07-20", time: "14:00", title: "Ruta del Chianti: bodega con degustación", city: "Siena", country: "Italia", category: "actividad", description: "Vino Brunello o Chianti Classico" },
 
   // 21 Jul (MAR) - Toscana → Cinque Terre
   { date: "2026-07-21", time: "09:00", title: "Salida hacia La Spezia", city: "Siena", country: "Italia", category: "transporte", description: "~2.5h desde Siena" },
   { date: "2026-07-21", time: "11:30", title: "Pisa: Torre inclinada + Piazza dei Miracoli", city: "Pisa", country: "Italia", category: "actividad", description: "De paso (45 min)" },
   { date: "2026-07-21", time: "14:30", title: "Check-in La Spezia", city: "La Spezia", country: "Italia", category: "alojamiento", description: "Base para Cinque Terre" },
-  { date: "2026-07-21", time: "16:00", title: "Ferry a Riomaggiore + Manarola", city: "Cinque Terre", country: "Italia", category: "actividad", description: "Dos aldeas más fotogénicas" },
+  { date: "2026-07-21", time: "16:00", title: "Ferry a Riomaggiore + Manarola", city: "La Spezia", country: "Italia", category: "actividad", description: "Dos aldeas más fotogénicas" },
 
   // 22 Jul (MIE) - Cinque Terre
-  { date: "2026-07-22", time: "09:00", title: "Tren a Corniglia → Vernazza → Monterosso", city: "Cinque Terre", country: "Italia", category: "actividad", description: "Recorrido de aldeas" },
-  { date: "2026-07-22", time: "11:00", title: "Caminata Vernazza → Monterosso", city: "Cinque Terre", country: "Italia", category: "actividad", description: "1.5h, imprescindible" },
+  { date: "2026-07-22", time: "09:00", title: "Tren a Corniglia → Vernazzo → Monterosso", city: "La Spezia", country: "Italia", category: "actividad", description: "Recorrido de aldeas" },
+  { date: "2026-07-22", time: "11:00", title: "Caminata Vernazzo → Monterosso", city: "Monterosso", country: "Italia", category: "actividad", description: "1.5h, imprescindible" },
   { date: "2026-07-22", time: "14:00", title: "Almuerzo y playa en Monterosso", city: "Monterosso", country: "Italia", category: "actividad", description: "Descanso en la playa" },
 
   // 23 Jul (JUE) - Santa Margherita + Portofino
@@ -49,7 +49,7 @@ const ITINERARY_ITEMS = [
   { date: "2026-07-24", time: "14:00", title: "Ferry a Bellagio", city: "Bellagio", country: "Italia", category: "actividad", description: "Pueblo más bonito del lago" },
 
   // 25 Jul (SAB) - Lago di Como
-  { date: "2026-07-25", time: "09:00", title: "Ferry entre Varenna, Menaggio, Bellagio", city: "Lago di Como", country: "Italia", category: "actividad", description: "Recorrido del lago" },
+  { date: "2026-07-25", time: "09:00", title: "Ferry entre Varenna, Menaggio, Bellagio", city: "Como", country: "Italia", category: "actividad", description: "Recorrido del lago" },
   { date: "2026-07-25", time: "12:00", title: "Villa del Balbianello", city: "Lenno", country: "Italia", category: "actividad", description: "Escenas Star Wars + Casino Royale" },
   { date: "2026-07-25", time: "15:30", title: "Nesso + cascada escondida", city: "Nesso", country: "Italia", category: "actividad", description: "Paisaje alpino" },
 
@@ -66,24 +66,24 @@ const ITINERARY_ITEMS = [
   // 28 Jul (MAR) - Vuelo a Berlín
   { date: "2026-07-28", time: "09:30", title: "Transfer al aeropuerto Orio al Serio (BGY)", city: "Bergamo", country: "Italia", category: "transporte" },
   { date: "2026-07-28", time: "12:00", title: "Vuelo Bergamo → Berlín", city: "Bergamo", country: "Italia", category: "vuelo", description: "Salida 12:00" },
-  { date: "2026-07-28", time: "15:00", title: "Llegada Berlín + Alexanderplatz", city: "Berlin", country: "Alemania", category: "alojamiento", description: "Check-in + paseo" },
+  { date: "2026-07-28", time: "15:00", title: "Llegada Berlín + Alexanderplatz", city: "Berlín", country: "Alemania", category: "alojamiento", description: "Check-in + paseo" },
 
   // 29 Jul (MIE) - Berlín: Historia
-  { date: "2026-07-29", time: "09:00", title: "East Side Gallery (Muro de Berlín)", city: "Berlin", country: "Alemania", category: "actividad", description: "1.3km del muro" },
-  { date: "2026-07-29", time: "11:00", title: "Checkpoint Charlie + Museo del Muro", city: "Berlin", country: "Alemania", category: "actividad" },
-  { date: "2026-07-29", time: "14:00", title: "Almuerzo en Mitte", city: "Berlin", country: "Alemania", category: "actividad" },
-  { date: "2026-07-29", time: "15:30", title: "Reichstag", city: "Berlin", country: "Alemania", category: "actividad", description: "Reserva anticipada gratuita" },
-  { date: "2026-07-29", time: "17:30", title: "Puerta de Brandenburgo + Memorial del Holocausto", city: "Berlin", country: "Alemania", category: "actividad" },
+  { date: "2026-07-29", time: "09:00", title: "East Side Gallery (Muro de Berlín)", city: "Berlín", country: "Alemania", category: "actividad", description: "1.3km del muro" },
+  { date: "2026-07-29", time: "11:00", title: "Checkpoint Charlie + Museo del Muro", city: "Berlín", country: "Alemania", category: "actividad" },
+  { date: "2026-07-29", time: "14:00", title: "Almuerzo en Mitte", city: "Berlín", country: "Alemania", category: "actividad" },
+  { date: "2026-07-29", time: "15:30", title: "Reichstag", city: "Berlín", country: "Alemania", category: "actividad", description: "Reserva anticipada gratuita" },
+  { date: "2026-07-29", time: "17:30", title: "Puerta de Brandenburgo + Memorial del Holocausto", city: "Berlín", country: "Alemania", category: "actividad" },
 
   // 30 Jul (JUE) - Berlín: Cultura + Shopping
-  { date: "2026-07-30", time: "09:00", title: "Isla de los Museos", city: "Berlin", country: "Alemania", category: "actividad", description: "Pergamon Museum" },
-  { date: "2026-07-30", time: "12:30", title: "Almuerzo en Hackescher Markt", city: "Berlin", country: "Alemania", category: "actividad" },
-  { date: "2026-07-30", time: "14:00", title: "Shopping: KaDeWe + Kurfürstendamm", city: "Berlin", country: "Alemania", category: "actividad", description: "Día de shopping" },
-  { date: "2026-07-30", time: "18:00", title: "Potsdamer Platz + Sony Center", city: "Berlin", country: "Alemania", category: "actividad" },
-  { date: "2026-07-30", time: "20:00", title: "Cena en Prenzlauer Berg", city: "Berlin", country: "Alemania", category: "actividad" },
+  { date: "2026-07-30", time: "09:00", title: "Isla de los Museos", city: "Berlín", country: "Alemania", category: "actividad", description: "Pergamon Museum" },
+  { date: "2026-07-30", time: "12:30", title: "Almuerzo en Hackescher Markt", city: "Berlín", country: "Alemania", category: "actividad" },
+  { date: "2026-07-30", time: "14:00", title: "Shopping: KaDeWe + Kurfürstendamm", city: "Berlín", country: "Alemania", category: "actividad", description: "Día de shopping" },
+  { date: "2026-07-30", time: "18:00", title: "Potsdamer Platz + Sony Center", city: "Berlín", country: "Alemania", category: "actividad" },
+  { date: "2026-07-30", time: "20:00", title: "Cena en Prenzlauer Berg", city: "Berlín", country: "Alemania", category: "actividad" },
 
   // 31 Jul (VIE) - Vuelo
-  { date: "2026-07-31", time: "10:00", title: "Vuelo Berlín → Buenos Aires", city: "Berlin", country: "Alemania", category: "vuelo", description: "Vuelo a casa" },
+  { date: "2026-07-31", time: "10:00", title: "Vuelo Berlín → Buenos Aires", city: "Berlín", country: "Alemania", category: "vuelo", description: "Vuelo a casa" },
 ];
 
 export async function POST(request: NextRequest) {
