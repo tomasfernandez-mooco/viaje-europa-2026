@@ -40,9 +40,16 @@ export async function PUT(
     // Strip non-updateable fields
     const { id: _id, tripId: _tid, createdAt: _ca, trip: _trip, expenses: _exp, ...updateData } = body;
 
+    // Normalize snake_case to camelCase
+    const normalized: any = {};
+    for (const [key, value] of Object.entries(updateData)) {
+      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      normalized[camelKey] = value;
+    }
+
     // Normalize travelerIds to string
-    if (Array.isArray(updateData.travelerIds)) {
-      updateData.travelerIds = JSON.stringify(updateData.travelerIds);
+    if (Array.isArray(normalized.travelerIds)) {
+      normalized.travelerIds = JSON.stringify(normalized.travelerIds);
     }
 
     console.log("[PUT] Updating reservation", id);
@@ -50,7 +57,7 @@ export async function PUT(
     // Use Prisma ORM for simpler update
     const reservation = await prisma.reservation.update({
       where: { id },
-      data: updateData,
+      data: normalized,
     });
 
     console.log("[PUT] SUCCESS:", id);
