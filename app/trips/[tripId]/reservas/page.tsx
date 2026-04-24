@@ -17,9 +17,11 @@ export default async function ReservasPage({ params }: { params: { tripId: strin
 
   let reservations: Reservation[] = [];
   try {
+    console.log("[reservas] Fetching for tripId:", params.tripId);
     const rows = await prisma.$queryRaw`
       SELECT * FROM "reservations" WHERE "tripId" = ${params.tripId} ORDER BY "startDate" ASC
     `;
+    console.log("[reservas] Query returned:", (rows as any[]).length, "rows");
     reservations = (rows as any[]).map((r) => ({
       ...r,
       createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt || 0),
@@ -27,6 +29,8 @@ export default async function ReservasPage({ params }: { params: { tripId: strin
   } catch (err) {
     console.error("[reservas] Query failed:", err instanceof Error ? err.message : err);
   }
+
+  console.log("[reservas] Final reservations count:", reservations.length);
 
   const config: Record<string, string> = {};
   configRows.forEach((r) => (config[r.key] = r.value));
