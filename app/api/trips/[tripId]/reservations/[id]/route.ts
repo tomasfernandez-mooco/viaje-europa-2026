@@ -36,25 +36,34 @@ export async function PUT(
     const { tripId, id } = await params;
     const body = await request.json();
 
+    console.log("[PUT] Raw body:", JSON.stringify(body));
+    console.log("[PUT] Body keys:", Object.keys(body));
+
     // Strip relational/immutable fields before passing to Prisma
     const { id: _id, tripId: _tid, createdAt: _ca, trip: _trip, expenses: _exp, ...data } = body;
+
+    console.log("[PUT] Data after strip:", JSON.stringify(data));
 
     // Ensure travelerIds is a string (not an array)
     if (Array.isArray(data.travelerIds)) {
       data.travelerIds = JSON.stringify(data.travelerIds);
     }
 
-    console.log("[PUT reservation] Updating", id, "- costBreakdown:", data.costBreakdown);
+    console.log("[PUT] Final data:", JSON.stringify(data));
 
     const reservation = await prisma.reservation.update({
       where: { id },
       data,
     });
 
+    console.log("[PUT] SUCCESS:", reservation.id);
     return NextResponse.json(reservation);
   } catch (error) {
-    console.error("[PUT reservation] ERROR:", error instanceof Error ? error.message : String(error));
-    return NextResponse.json({ error: "Failed to update reservation" }, { status: 500 });
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : "";
+    console.error("[PUT] FULL ERROR:", msg);
+    console.error("[PUT] STACK:", stack);
+    return NextResponse.json({ error: msg, details: stack }, { status: 500 });
   }
 }
 
