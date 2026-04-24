@@ -15,13 +15,17 @@ export default async function ReservasPage({ params }: { params: { tripId: strin
     prisma.itineraryItem.findMany({ where: { tripId: params.tripId }, orderBy: [{ date: "asc" }, { orderIndex: "asc" }] }),
   ]);
 
-  // Separated — Prisma selects costBreakdown/linkedItineraryDates which may not exist yet in the DB.
   let reservations: Reservation[] = [];
   try {
-    const rows = await prisma.reservation.findMany({ where: { tripId: params.tripId }, orderBy: { startDate: "asc" } });
-    reservations = rows as unknown as Reservation[];
+    const rows = await prisma.$queryRaw`
+      SELECT * FROM "reservations" WHERE "tripId" = ${params.tripId} ORDER BY "startDate" ASC
+    `;
+    reservations = (rows as any[]).map((r) => ({
+      ...r,
+      createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt || 0),
+    })) as Reservation[];
   } catch (err) {
-    console.error("[reservas/page] Reservation query error:", err instanceof Error ? err.message : err);
+    console.error("[reservas] Query failed:", err instanceof Error ? err.message : err);
   }
 
   const config: Record<string, string> = {};
