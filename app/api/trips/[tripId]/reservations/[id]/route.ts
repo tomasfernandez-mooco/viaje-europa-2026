@@ -35,23 +35,18 @@ export async function PUT(
   try {
     const { tripId, id } = await params;
     const body = await request.json();
-    console.log("[PUT reservation] id:", id, "body keys:", Object.keys(body));
-    // Strip non-Prisma fields and serialize travelerIds
-    const { travelerIds, tripId: _tid, createdAt: _ca, id: _id, trip: _trip, ...rest } = body;
-    console.log("[PUT reservation] rest keys:", Object.keys(rest), "costBreakdown:", rest.costBreakdown);
+    console.log("[PUT reservation] Saving id:", id, "with keys:", Object.keys(body));
+
+    // Use Prisma to update - it handles serialization
     const reservation = await prisma.reservation.update({
-      where: { id, tripId },
-      data: {
-        ...rest,
-        ...(travelerIds !== undefined && {
-          travelerIds: Array.isArray(travelerIds) ? JSON.stringify(travelerIds) : travelerIds,
-        }),
-      },
+      where: { id },
+      data: body,
     });
-    console.log("[PUT reservation] SUCCESS id:", reservation.id);
+
+    console.log("[PUT reservation] SUCCESS - saved:", reservation.id);
     return NextResponse.json(reservation);
   } catch (error) {
-    console.error("[PUT reservation] ERROR:", error instanceof Error ? error.message : error);
+    console.error("[PUT reservation] ERROR:", error instanceof Error ? error.message : String(error));
     return NextResponse.json({ error: "Failed to update reservation" }, { status: 500 });
   }
 }
