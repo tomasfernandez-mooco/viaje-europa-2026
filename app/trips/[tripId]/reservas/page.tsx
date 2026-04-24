@@ -20,7 +20,9 @@ export default async function ReservasPage({ params }: { params: { tripId: strin
   try {
     const rows = await prisma.reservation.findMany({ where: { tripId: params.tripId }, orderBy: { startDate: "asc" } });
     reservations = rows as unknown as Reservation[];
-  } catch { /* migration pending */ }
+  } catch (err) {
+    console.error("[reservas/page] Reservation query error:", err instanceof Error ? err.message : err);
+  }
 
   const config: Record<string, string> = {};
   configRows.forEach((r) => (config[r.key] = r.value));
