@@ -456,7 +456,13 @@ function ReservationModal({
       ? selectedIds.filter((id) => id !== travelerId)
       : [...selectedIds, travelerId];
     const newBreakdown = { ...breakdown };
-    if (!next.includes(travelerId)) delete newBreakdown[travelerId];
+    if (!next.includes(travelerId)) {
+      delete newBreakdown[travelerId];
+    } else {
+      if (newBreakdown[travelerId] === undefined) {
+        newBreakdown[travelerId] = Math.round((form.priceUSD ?? 0) / next.length);
+      }
+    }
     setForm((f) => ({
       ...f,
       travelerIds: JSON.stringify(next),
