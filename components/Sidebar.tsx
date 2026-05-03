@@ -8,7 +8,6 @@ const navItems = [
   { href: "/items", label: "Reservas" },
   { href: "/presupuesto", label: "Presupuesto" },
   { href: "/checklist", label: "Checklist" },
-  { href: "/mapa", label: "Mapa" },
 ];
 
 const TRIP_START = new Date("2026-07-08");

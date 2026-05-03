@@ -4,7 +4,7 @@ import Link from "next/link";
 
 type UserRow = {
   id: string; email: string; name: string; avatar?: string | null;
-  role: string; createdAt: string;
+  role: string; createdAt: string; passwordHash?: string;
 };
 type TripRow = {
   id: string; name: string; startDate: string; endDate: string;
@@ -26,6 +26,9 @@ export default function AdminClient({
   const [assignUserId, setAssignUserId] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionResult, setActionResult] = useState<{ action: string; message: string; ok: boolean } | null>(null);
+  const [newUser, setNewUser] = useState({ email: "", name: "", password: "" });
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [createResult, setCreateResult] = useState<{ message: string; ok: boolean } | null>(null);
 
   async function runAdminAction(action: string, url: string) {
     setActionLoading(action);
@@ -64,6 +67,37 @@ export default function AdminClient({
     setTrips((prev) => prev.map((t) => t.id === tripId ? { ...t, userId: assignUserId } : t));
     setAssigningTripId(null);
     setAssignUserId("");
+  }
+
+  async function handleCreateUser(e: React.FormEvent) {
+    e.preventDefault();
+    setCreatingUser(true);
+    setCreateResult(null);
+    try {
+      const res = await fetch("/api/admin/create-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Secret": process.env.NEXT_PUBLIC_ADMIN_SECRET || "europa2026-admin",
+        },
+        body: JSON.stringify({ email: newUser.email, name: newUser.name, password: newUser.password }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setCreateResult({ message: `Usuario ${data.user.name} creado correctamente`, ok: true });
+        setUsers((prev) => {
+          if (prev.find((u) => u.id === data.user.id)) return prev;
+          return [...prev, { ...data.user, createdAt: data.user.createdAt ?? new Date().toISOString() }];
+        });
+        setNewUser({ email: "", name: "", password: "" });
+      } else {
+        setCreateResult({ message: data.error ?? "Error desconocido", ok: false });
+      }
+    } catch (err: any) {
+      setCreateResult({ message: err.message, ok: false });
+    } finally {
+      setCreatingUser(false);
+    }
   }
 
   function tripsForUser(userId: string) {
@@ -175,6 +209,64 @@ export default function AdminClient({
               })}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Create User */}
+      <div className="mb-8">
+        <h2 className="text-sm font-semibold text-c-muted dark:text-slate-400 uppercase tracking-widest mb-3">
+          Crear usuario
+        </h2>
+        <div className="glass-card rounded-2xl p-4">
+          <form onSubmit={handleCreateUser} className="flex flex-wrap gap-3 items-end">
+            <div className="flex-1 min-w-[160px]">
+              <label className="block text-[11px] font-medium text-c-muted mb-1 uppercase tracking-wide">Nombre</label>
+              <input
+                value={newUser.name}
+                onChange={(e) => setNewUser((u) => ({ ...u, name: e.target.value }))}
+                className="glass-input w-full"
+                placeholder="Ej: Delfina"
+                required
+              />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-[11px] font-medium text-c-muted mb-1 uppercase tracking-wide">Email</label>
+              <input
+                type="email"
+                value={newUser.email}
+                onChange={(e) => setNewUser((u) => ({ ...u, email: e.target.value }))}
+                className="glass-input w-full"
+                placeholder="usuario@europa2026.com"
+                required
+              />
+            </div>
+            <div className="flex-1 min-w-[160px]">
+              <label className="block text-[11px] font-medium text-c-muted mb-1 uppercase tracking-wide">Contraseña</label>
+              <input
+                type="password"
+                value={newUser.password}
+                onChange={(e) => setNewUser((u) => ({ ...u, password: e.target.value }))}
+                className="glass-input w-full"
+                placeholder="Contraseña inicial"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={creatingUser}
+              className="text-sm bg-accent text-white px-4 py-2 rounded-xl hover:bg-terra-500 transition-colors disabled:opacity-50 flex items-center gap-2 shrink-0"
+            >
+              {creatingUser && (
+                <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              )}
+              Crear usuario
+            </button>
+          </form>
+          {createResult && (
+            <p className={`mt-3 text-xs px-3 py-2 rounded-xl ${createResult.ok ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+              {createResult.message}
+            </p>
+          )}
         </div>
       </div>
 

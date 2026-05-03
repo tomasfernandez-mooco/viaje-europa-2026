@@ -3,13 +3,64 @@ import prisma from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-const TOMAS_ID = "#6366f1";
-const MARCELA_ID = "#f59e0b";
-const DELFINA_ID = "#10b981";
-
 export async function POST(request: NextRequest) {
   try {
     console.log("[UPDATE-BREAKDOWN] Starting...");
+
+    // Find the Europa 2026 trip
+    const trip = await prisma.trip.findFirst({
+      where: { name: { contains: "Europa" } },
+    });
+
+    if (!trip) {
+      return NextResponse.json(
+        { error: "No se encontró el viaje Europa 2026" },
+        { status: 404 }
+      );
+    }
+
+    console.log(`[UPDATE-BREAKDOWN] Trip found: ${trip.name} (${trip.id})`);
+
+    // Find the travelers for this trip
+    const travelers = await prisma.traveler.findMany({
+      where: { tripId: trip.id },
+    });
+
+    console.log(`[UPDATE-BREAKDOWN] Travelers found: ${travelers.map((t: { name: string }) => t.name).join(", ")}`);
+
+    const findTraveler = (name: string) =>
+      travelers.find((t: { name: string }) =>
+        t.name.toLowerCase().includes(name.toLowerCase())
+      );
+
+    const tomas = findTraveler("tomas") || findTraveler("tomás");
+    const marcela = findTraveler("marcela");
+    const delfina = findTraveler("delfina");
+
+    if (!tomas) {
+      return NextResponse.json(
+        { error: "No se encontró el viajero Tomas en el viaje Europa" },
+        { status: 404 }
+      );
+    }
+    if (!marcela) {
+      return NextResponse.json(
+        { error: "No se encontró la viajera Marcela en el viaje Europa" },
+        { status: 404 }
+      );
+    }
+    if (!delfina) {
+      return NextResponse.json(
+        { error: "No se encontró la viajera Delfina en el viaje Europa" },
+        { status: 404 }
+      );
+    }
+
+    const TOMAS_ID = tomas.id;
+    const MARCELA_ID = marcela.id;
+    const DELFINA_ID = delfina.id;
+
+    console.log(`[UPDATE-BREAKDOWN] IDs — Tomas: ${TOMAS_ID}, Marcela: ${MARCELA_ID}, Delfina: ${DELFINA_ID}`);
 
     // Get all confirmed reservations
     const rows = await prisma.$queryRaw<any[]>`
@@ -51,12 +102,10 @@ export async function POST(request: NextRequest) {
 
       const costBreakdown = JSON.stringify(breakdown);
 
-      // Update the reservation - set both costBreakdown and paidBy (Tomas)
-      await prisma.$executeRaw`
-        UPDATE "reservations"
-        SET "costBreakdown" = ${costBreakdown}, "paidBy" = ${TOMAS_ID}
-        WHERE "id" = ${reservation.id}
-      `;
+      await prisma.reservation.update({
+        where: { id: reservation.id },
+        data: { costBreakdown, paidBy: TOMAS_ID },
+      });
 
       updated++;
     }
