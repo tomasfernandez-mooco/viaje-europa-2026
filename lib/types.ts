@@ -41,6 +41,7 @@ export type Reservation = {
   endDate?: string | null;
   freeCancellation: boolean;
   paid: boolean;
+  paidAmount: number;
   deadlineDate?: string | null;
   alert?: string | null;
   travelers: number;

@@ -55,7 +55,7 @@ export default function TripReservasClient({ tripId, reservations: initial = [],
   }, [reservations, filtroType, filtroStatus, busqueda, filtroViajero, sortKey, sortDir]);
 
   const totalUSD = filtered.reduce((s, r) => s + r.priceUSD, 0);
-  const totalPagado = filtered.filter((r) => r.paid).reduce((s, r) => s + r.priceUSD, 0);
+  const totalPagado = filtered.reduce((s, r) => s + (r.paidAmount ?? 0), 0);
   const totalSaldo = totalUSD - totalPagado;
 
   async function handleSave(data: Partial<Reservation>) {
@@ -283,10 +283,10 @@ export default function TripReservasClient({ tripId, reservations: initial = [],
                     <td className="px-3 py-3 text-right text-c-muted text-xs">{formatMoney(r.price, r.currency)}</td>
                     <td className="px-3 py-3 text-right font-medium text-c-heading">${r.priceUSD.toLocaleString()}</td>
                     <td className="px-3 py-3 text-right font-medium text-green-600 dark:text-green-400">
-                      {r.paid ? `$${r.priceUSD.toLocaleString()}` : "—"}
+                      {(r.paidAmount ?? 0) > 0 ? `$${Math.round(r.paidAmount ?? 0).toLocaleString()}` : "$0"}
                     </td>
                     <td className="px-3 py-3 text-right font-medium text-amber-600 dark:text-amber-400">
-                      {r.paid ? "—" : `$${r.priceUSD.toLocaleString()}`}
+                      {(() => { const s = Math.round(r.priceUSD - (r.paidAmount ?? 0)); return s > 0 ? `$${s.toLocaleString()}` : "$0"; })()}
                     </td>
                     <td className="px-3 py-3">
                       <button onClick={() => toggleStatus(r)}><EstadoBadge estado={r.status} /></button>
@@ -338,10 +338,13 @@ export default function TripReservasClient({ tripId, reservations: initial = [],
                   <div className="text-right ml-3 shrink-0">
                     <p className="text-xs text-c-muted">{formatMoney(r.price, r.currency)}</p>
                     <p className="text-sm font-medium text-c-heading">${r.priceUSD.toLocaleString()}</p>
-                    {r.paid
-                      ? <p className="text-xs text-green-600">Pagado</p>
-                      : <p className="text-xs text-amber-600">Saldo ${r.priceUSD.toLocaleString()}</p>
-                    }
+                    {(() => {
+                      const pa = r.paidAmount ?? 0;
+                      const saldo = r.priceUSD - pa;
+                      if (pa >= r.priceUSD) return <p className="text-xs text-green-600">Pagado completo</p>;
+                      if (pa > 0) return <p className="text-xs text-amber-600">Adelanto ${Math.round(pa).toLocaleString()} · Saldo ${Math.round(saldo).toLocaleString()}</p>;
+                      return <p className="text-xs text-amber-600">Saldo ${r.priceUSD.toLocaleString()}</p>;
+                    })()}
                   </div>
                 </div>
                 {r.alert && <p className="text-xs text-amber-600 mb-2">{r.alert}</p>}
@@ -371,7 +374,11 @@ export default function TripReservasClient({ tripId, reservations: initial = [],
               return ids.length === 0 || ids.includes(traveler.id);
             });
             const totalCosto = myReservations.reduce((s, r) => s + getCostForTraveler(r, traveler), 0);
-            const totalPagadoV = myReservations.filter((r) => r.paid).reduce((s, r) => s + getCostForTraveler(r, traveler), 0);
+            const totalPagadoV = myReservations.reduce((s, r) => {
+              const miParte = getCostForTraveler(r, traveler);
+              const ratio = r.priceUSD > 0 ? (r.paidAmount ?? 0) / r.priceUSD : 0;
+              return s + miParte * Math.min(ratio, 1);
+            }, 0);
             const totalSaldoV = totalCosto - totalPagadoV;
             const paidBy = travelers.find((t) => t.id === myReservations[0]?.paidBy);
             return (
@@ -413,7 +420,8 @@ export default function TripReservasClient({ tripId, reservations: initial = [],
                       )}
                       {myReservations.map((r) => {
                         const miParte = Math.round(getCostForTraveler(r, traveler));
-                        const miPagado = r.paid ? miParte : 0;
+                        const ratio = r.priceUSD > 0 ? (r.paidAmount ?? 0) / r.priceUSD : 0;
+                        const miPagado = Math.round(miParte * Math.min(ratio, 1));
                         const miSaldo = miParte - miPagado;
                         const paidByTraveler = travelers.find((t) => t.id === r.paidBy);
                         return (
@@ -491,7 +499,7 @@ function ReservationModal({
     type: "alojamiento", title: "", city: "", country: "Italia",
     startDate: "2026-07-", status: "por-reservar", priority: "media",
     currency: "EUR", price: 0, priceUSD: 0, travelers: travelers.length || 2,
-    freeCancellation: false, paid: false,
+    freeCancellation: false, paid: false, paidAmount: 0,
     travelerIds: JSON.stringify(allTravelerIds),
   };
   const [form, setForm] = useState<Partial<Reservation>>(reservation ?? empty);
@@ -836,11 +844,51 @@ function ReservationModal({
                 onChange={(e) => update("freeCancellation", e.target.checked)} className="accent-accent rounded" />
               Cancelacion gratuita
             </label>
-            <label className="flex items-center gap-2 text-sm text-c-muted cursor-pointer">
-              <input type="checkbox" checked={form.paid ?? false}
-                onChange={(e) => update("paid", e.target.checked)} className="accent-accent rounded" />
-              Pagado
-            </label>
+          </div>
+
+          <div className="p-4 rounded-xl bg-green-500/5 border border-green-500/20">
+            <label className="block text-xs font-medium text-green-600 dark:text-green-400 mb-2">Adelanto pagado (USD)</label>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 flex-1">
+                <span className="text-xs text-c-muted">$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.paidAmount ?? 0}
+                  onChange={(e) => {
+                    const pa = parseFloat(e.target.value) || 0;
+                    setForm((f) => ({ ...f, paidAmount: pa, paid: pa >= (f.priceUSD ?? 0) }));
+                  }}
+                  className={`${inputClass} flex-1`}
+                  placeholder="0"
+                />
+                <span className="text-xs text-c-muted">USD</span>
+              </div>
+              {(form.priceUSD ?? 0) > 0 && (
+                <div className="text-xs text-right shrink-0">
+                  {(form.paidAmount ?? 0) >= (form.priceUSD ?? 0) ? (
+                    <span className="text-green-600 font-medium">Pagado completo</span>
+                  ) : (form.paidAmount ?? 0) > 0 ? (
+                    <span className="text-amber-600">Saldo: ${Math.round((form.priceUSD ?? 0) - (form.paidAmount ?? 0)).toLocaleString()}</span>
+                  ) : (
+                    <span className="text-c-subtle">Sin adelanto</span>
+                  )}
+                </div>
+              )}
+            </div>
+            {(form.priceUSD ?? 0) > 0 && (
+              <div className="mt-2 flex gap-2">
+                <button type="button" onClick={() => setForm((f) => ({ ...f, paidAmount: 0, paid: false }))}
+                  className="text-xs px-2 py-1 rounded-lg bg-white/10 text-c-muted hover:bg-white/20 transition-colors">
+                  Sin pago
+                </button>
+                <button type="button" onClick={() => setForm((f) => ({ ...f, paidAmount: f.priceUSD ?? 0, paid: true }))}
+                  className="text-xs px-2 py-1 rounded-lg bg-green-500/20 text-green-600 hover:bg-green-500/30 transition-colors">
+                  Pagado completo
+                </button>
+              </div>
+            )}
           </div>
 
           {itineraryDates.length > 0 && (

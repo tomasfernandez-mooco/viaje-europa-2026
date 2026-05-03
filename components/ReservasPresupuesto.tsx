@@ -14,7 +14,7 @@ export default function ReservasPresupuesto({ reservations = [], travelers: init
   const travelers = Array.isArray(initialTravelers) ? initialTravelers : [];
   const reservationsArray = Array.isArray(reservations) ? reservations : [];
   const totalAll = reservationsArray.reduce((s, r) => s + r.priceUSD, 0);
-  const pagadoAll = reservationsArray.filter((r) => r.paid).reduce((s, r) => s + r.priceUSD, 0);
+  const pagadoAll = reservationsArray.reduce((s, r) => s + (r.paidAmount ?? 0), 0);
   const saldoAll = totalAll - pagadoAll;
 
   const byTraveler = travelers.map((t) => {
@@ -23,7 +23,11 @@ export default function ReservasPresupuesto({ reservations = [], travelers: init
       return ids.length === 0 || ids.includes(t.id);
     });
     const costo = Math.round(myR.reduce((s, r) => s + getCostForTraveler(r, t), 0));
-    const pagado = Math.round(myR.filter((r) => r.paid).reduce((s, r) => s + getCostForTraveler(r, t), 0));
+    const pagado = Math.round(myR.reduce((s, r) => {
+      const miParte = getCostForTraveler(r, t);
+      const ratio = r.priceUSD > 0 ? (r.paidAmount ?? 0) / r.priceUSD : 0;
+      return s + miParte * Math.min(ratio, 1);
+    }, 0));
     return { name: t.name, color: t.color, costo, pagado, saldo: costo - pagado };
   });
 

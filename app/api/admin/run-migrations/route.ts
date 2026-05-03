@@ -11,6 +11,7 @@ async function runMigrations() {
     { label: "reservations.linkedItineraryDates", sql: 'ALTER TABLE "reservations" ADD COLUMN "linkedItineraryDates" TEXT' },
     { label: "reservations.costBreakdown", sql: 'ALTER TABLE "reservations" ADD COLUMN "costBreakdown" TEXT' },
     { label: "reservations.paidBy", sql: 'ALTER TABLE "reservations" ADD COLUMN "paidBy" TEXT' },
+    { label: "reservations.paidAmount", sql: 'ALTER TABLE "reservations" ADD COLUMN "paidAmount" REAL NOT NULL DEFAULT 0' },
   ];
 
   const results: Record<string, string> = {};
