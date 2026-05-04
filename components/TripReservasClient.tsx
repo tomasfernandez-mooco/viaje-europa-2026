@@ -915,10 +915,38 @@ function ReservationModal({
                 <span className="text-xs text-c-muted shrink-0 whitespace-nowrap">= ${paidUSDPreview.toLocaleString()} USD</span>
               )}
             </div>
+            {travelers.length > 0 && (form.paidAmount ?? 0) > 0 && (
+              <div className="mt-3">
+                <p className="text-[11px] text-c-muted mb-1.5 uppercase tracking-wide">¿Quién pagó?</p>
+                <div className="flex gap-2 flex-wrap">
+                  {travelers.map((t) => {
+                    const selected = form.paidBy === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, paidBy: selected ? undefined : t.id }))}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border transition-all ${
+                          selected
+                            ? "border-green-500/60 bg-green-500/15 text-green-700 dark:text-green-400"
+                            : "border-white/10 bg-white/[0.04] text-c-muted hover:border-white/20"
+                        }`}
+                      >
+                        <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0"
+                          style={{ backgroundColor: t.color }}>
+                          {t.name[0].toUpperCase()}
+                        </span>
+                        {t.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {(form.priceUSD ?? 0) > 0 && (
               <div className="mt-2 flex items-center justify-between flex-wrap gap-2">
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setForm((f) => ({ ...f, paidAmount: 0, paid: false }))}
+                  <button type="button" onClick={() => setForm((f) => ({ ...f, paidAmount: 0, paid: false, paidBy: undefined }))}
                     className="text-xs px-2 py-1 rounded-lg bg-white/10 text-c-muted hover:bg-white/20 transition-colors">
                     Sin pago
                   </button>
