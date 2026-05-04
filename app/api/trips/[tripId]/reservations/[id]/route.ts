@@ -54,19 +54,24 @@ export async function PUT(
 
     console.log("[PUT] Updating reservation", id);
 
-    // Use Prisma ORM for simpler update
-    const reservation = await prisma.reservation.update({
-      where: { id },
-      data: normalized,
-    });
-
-    console.log("[PUT] SUCCESS:", id);
-    return NextResponse.json(reservation);
+    try {
+      const reservation = await prisma.reservation.update({ where: { id }, data: normalized });
+      console.log("[PUT] SUCCESS:", id);
+      return NextResponse.json(reservation);
+    } catch (innerErr) {
+      const msg = innerErr instanceof Error ? innerErr.message : String(innerErr);
+      // If migration hasn't run yet, retry without new columns
+      if (msg.includes("no such column")) {
+        const { paidAmount: _pa, paidCurrency: _pc, ...safeData } = normalized;
+        const reservation = await prisma.reservation.update({ where: { id }, data: safeData });
+        console.log("[PUT] SUCCESS (safe fallback):", id);
+        return NextResponse.json(reservation);
+      }
+      throw innerErr;
+    }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    const stack = error instanceof Error ? error.stack : "";
     console.error("[PUT] ERROR:", msg);
-    console.error("[PUT] STACK:", stack);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

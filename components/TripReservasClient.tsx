@@ -539,13 +539,13 @@ function ReservationModal({
     const next = selectedIds.includes(travelerId)
       ? selectedIds.filter((id) => id !== travelerId)
       : [...selectedIds, travelerId];
-    const newBreakdown = { ...breakdown };
-    if (!next.includes(travelerId)) {
-      delete newBreakdown[travelerId];
-    } else {
-      if (newBreakdown[travelerId] === undefined) {
-        newBreakdown[travelerId] = Math.round((form.priceUSD ?? 0) / next.length);
-      }
+    // Always redistribute equally when travelers change
+    const total = form.priceUSD ?? 0;
+    const newBreakdown: Record<string, number> = {};
+    if (next.length > 0) {
+      const base = Math.floor(total / next.length);
+      const remainder = Math.round(total - base * next.length);
+      next.forEach((id, i) => { newBreakdown[id] = base + (i === 0 ? remainder : 0); });
     }
     setForm((f) => ({
       ...f,
@@ -553,6 +553,17 @@ function ReservationModal({
       travelers: next.length,
       costBreakdown: JSON.stringify(newBreakdown),
     }));
+  }
+
+  function resetBreakdownEqual() {
+    const total = form.priceUSD ?? 0;
+    const newBreakdown: Record<string, number> = {};
+    if (selectedIds.length > 0) {
+      const base = Math.floor(total / selectedIds.length);
+      const remainder = Math.round(total - base * selectedIds.length);
+      selectedIds.forEach((id, i) => { newBreakdown[id] = base + (i === 0 ? remainder : 0); });
+    }
+    setForm((f) => ({ ...f, costBreakdown: JSON.stringify(newBreakdown) }));
   }
 
   function updateBreakdownAmount(travelerId: string, amount: number) {
@@ -816,7 +827,13 @@ function ReservationModal({
 
           {selectedIds.length > 0 && (form.priceUSD ?? 0) > 0 && (
             <div className="p-4 rounded-xl bg-accent/5 border border-accent/20">
-              <label className={`${labelClass} mb-3`}>División de costos (USD)</label>
+              <div className="flex items-center justify-between mb-3">
+                <label className={labelClass}>División de costos (USD)</label>
+                <button type="button" onClick={resetBreakdownEqual}
+                  className="text-xs px-2 py-1 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors">
+                  Igualar
+                </button>
+              </div>
               <div className="space-y-2">
                 {selectedIds.map((tid) => {
                   const traveler = travelers.find((t) => t.id === tid);
@@ -835,7 +852,7 @@ function ReservationModal({
                         <input
                           type="number"
                           min="0"
-                          step="0.01"
+                          step="1"
                           value={amount}
                           onChange={(e) => updateBreakdownAmount(tid, parseFloat(e.target.value) || 0)}
                           className="glass-input !py-1 !px-2 text-xs w-20"
@@ -846,12 +863,20 @@ function ReservationModal({
                   );
                 })}
               </div>
-              <div className="mt-3 pt-3 border-t border-accent/20 flex justify-between">
-                <span className="text-xs font-medium text-c-muted">Total asignado</span>
-                <span className="text-xs font-semibold text-accent">
-                  ${Object.values(breakdown).reduce((s, v) => s + v, 0).toLocaleString()} USD
-                </span>
-              </div>
+              {(() => {
+                const assignedTotal = Object.values(breakdown).reduce((s, v) => s + v, 0);
+                const diff = Math.round(assignedTotal - (form.priceUSD ?? 0));
+                return (
+                  <div className="mt-3 pt-3 border-t border-accent/20 flex justify-between items-center">
+                    <span className="text-xs font-medium text-c-muted">Total asignado</span>
+                    <span className={`text-xs font-semibold ${diff !== 0 ? "text-red-500" : "text-accent"}`}>
+                      ${Math.round(assignedTotal).toLocaleString()} USD
+                      {diff > 0 && <span className="ml-1 text-[10px]">(+${diff} extra)</span>}
+                      {diff < 0 && <span className="ml-1 text-[10px]">(${Math.abs(diff)} sin asignar)</span>}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

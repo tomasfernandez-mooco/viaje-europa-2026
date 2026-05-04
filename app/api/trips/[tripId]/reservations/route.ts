@@ -59,14 +59,23 @@ export async function POST(
 
     const body = await request.json();
     const { travelerIds, ...rest } = body;
-    const reservation = await prisma.reservation.create({
-      data: {
-        ...rest,
-        tripId,
-        ...(travelerIds !== undefined && { travelerIds: JSON.stringify(travelerIds) }),
-      },
-    });
-    return NextResponse.json(reservation, { status: 201 });
+    const createData = {
+      ...rest,
+      tripId,
+      ...(travelerIds !== undefined && { travelerIds: JSON.stringify(travelerIds) }),
+    };
+    try {
+      const reservation = await prisma.reservation.create({ data: createData });
+      return NextResponse.json(reservation, { status: 201 });
+    } catch (innerErr) {
+      const msg = innerErr instanceof Error ? innerErr.message : String(innerErr);
+      if (msg.includes("no such column")) {
+        const { paidAmount: _pa, paidCurrency: _pc, ...safeData } = createData;
+        const reservation = await prisma.reservation.create({ data: safeData });
+        return NextResponse.json(reservation, { status: 201 });
+      }
+      throw innerErr;
+    }
   } catch (error) {
     console.error("Error creating reservation:", error);
     return NextResponse.json({ error: "Failed to create reservation" }, { status: 500 });
