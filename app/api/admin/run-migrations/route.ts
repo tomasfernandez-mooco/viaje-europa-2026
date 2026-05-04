@@ -12,6 +12,7 @@ async function runMigrations() {
     { label: "reservations.costBreakdown", sql: 'ALTER TABLE "reservations" ADD COLUMN "costBreakdown" TEXT' },
     { label: "reservations.paidBy", sql: 'ALTER TABLE "reservations" ADD COLUMN "paidBy" TEXT' },
     { label: "reservations.paidAmount", sql: 'ALTER TABLE "reservations" ADD COLUMN "paidAmount" REAL NOT NULL DEFAULT 0' },
+    { label: "reservations.paidCurrency", sql: 'ALTER TABLE "reservations" ADD COLUMN "paidCurrency" TEXT' },
   ];
 
   const results: Record<string, string> = {};

@@ -101,6 +101,7 @@ model Reservation {
   freeCancellation   Boolean  @default(false)
   paid               Boolean  @default(false)
   paidAmount         Float    @default(0)
+  paidCurrency       String?
   deadlineDate       String?
   alert              String?
   travelers              Int      @default(2)
