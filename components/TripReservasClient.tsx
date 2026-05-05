@@ -377,8 +377,27 @@ export default function TripReservasClient({ tripId, reservations: initial = [],
           {travelers.length === 0 && (
             <p className="text-sm text-c-muted text-center py-8">No hay viajeros en este viaje.</p>
           )}
-          {travelers.map((traveler) => {
-            const myReservations = reservations.filter((r) => {
+          {(() => {
+            // Build bilateral debt matrix from filtered reservations
+            // debtMatrix[creditorId][debtorId] = amount debtor owes creditor
+            const debtMatrix: Record<string, Record<string, number>> = {};
+            for (const r of filtered) {
+              if (!r.paidBy || getPaidUSD(r) <= 0) continue;
+              const payer = r.paidBy;
+              const ratio = r.priceUSD > 0 ? Math.min(getPaidUSD(r) / r.priceUSD, 1) : 0;
+              for (const t of travelers) {
+                if (t.id === payer) continue;
+                const ids = parseTravelerIds(r);
+                if (ids.length > 0 && !ids.includes(t.id)) continue;
+                const covered = Math.round(getCostForTraveler(r, t) * ratio);
+                if (covered > 0) {
+                  if (!debtMatrix[payer]) debtMatrix[payer] = {};
+                  debtMatrix[payer][t.id] = (debtMatrix[payer][t.id] ?? 0) + covered;
+                }
+              }
+            }
+            return travelers.map((traveler) => {
+            const myReservations = filtered.filter((r) => {
               const ids = parseTravelerIds(r);
               return ids.length === 0 || ids.includes(traveler.id);
             });
@@ -389,25 +408,50 @@ export default function TripReservasClient({ tripId, reservations: initial = [],
               return s + miParte * Math.min(ratio, 1);
             }, 0);
             const totalSaldoV = totalCosto - totalPagadoV;
-            const paidBy = travelers.find((t) => t.id === myReservations[0]?.paidBy);
+            // Net bilateral debts for this traveler
+            const netDebts: { other: Traveler; amount: number; iOwe: boolean }[] = [];
+            for (const other of travelers) {
+              if (other.id === traveler.id) continue;
+              const iOweOther = debtMatrix[other.id]?.[traveler.id] ?? 0;
+              const otherOwesMe = debtMatrix[traveler.id]?.[other.id] ?? 0;
+              const net = iOweOther - otherOwesMe;
+              if (Math.abs(net) >= 1) {
+                netDebts.push({ other, amount: Math.abs(net), iOwe: net > 0 });
+              }
+            }
             return (
               <div key={traveler.id} className="glass-card rounded-2xl overflow-hidden">
-                <div className="px-5 py-4 flex items-center justify-between border-b border-white/10 flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm"
-                      style={{ backgroundColor: traveler.color }}>
-                      {traveler.name.charAt(0).toUpperCase()}
-                    </span>
-                    <div>
-                      <p className="font-medium text-c-heading text-sm">{traveler.name}</p>
-                      <p className="text-xs text-c-muted">{myReservations.length} reservas</p>
+                <div className="px-5 py-4 border-b border-white/10">
+                  <div className="flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm"
+                        style={{ backgroundColor: traveler.color }}>
+                        {traveler.name.charAt(0).toUpperCase()}
+                      </span>
+                      <div>
+                        <p className="font-medium text-c-heading text-sm">{traveler.name}</p>
+                        <p className="text-xs text-c-muted">{myReservations.length} reservas</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-5 text-right">
+                      <div><p className="text-[10px] text-c-muted uppercase tracking-wide">Total</p><p className="font-semibold text-c-heading text-sm">${Math.round(totalCosto).toLocaleString()}</p></div>
+                      <div><p className="text-[10px] text-green-600 uppercase tracking-wide">Pagado</p><p className="font-semibold text-green-600 text-sm">${Math.round(totalPagadoV).toLocaleString()}</p></div>
+                      <div><p className="text-[10px] text-amber-600 uppercase tracking-wide">Saldo</p><p className="font-semibold text-amber-600 text-sm">${Math.round(totalSaldoV).toLocaleString()}</p></div>
                     </div>
                   </div>
-                  <div className="flex gap-5 text-right">
-                    <div><p className="text-[10px] text-c-muted uppercase tracking-wide">Total</p><p className="font-semibold text-c-heading text-sm">${Math.round(totalCosto).toLocaleString()}</p></div>
-                    <div><p className="text-[10px] text-green-600 uppercase tracking-wide">Pagado</p><p className="font-semibold text-green-600 text-sm">${Math.round(totalPagadoV).toLocaleString()}</p></div>
-                    <div><p className="text-[10px] text-amber-600 uppercase tracking-wide">Saldo</p><p className="font-semibold text-amber-600 text-sm">${Math.round(totalSaldoV).toLocaleString()}</p></div>
-                  </div>
+                  {netDebts.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {netDebts.map(({ other, amount, iOwe }) => (
+                        <span key={other.id} className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium ${iOwe ? "bg-red-500/10 text-red-400" : "bg-green-500/10 text-green-400"}`}>
+                          <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px] font-bold" style={{ backgroundColor: other.color }}>
+                            {other.name[0].toUpperCase()}
+                          </span>
+                          {iOwe ? `Le debe a ${other.name}` : `${other.name} le debe`}
+                          <span className="font-semibold">${amount.toLocaleString()}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
@@ -457,13 +501,14 @@ export default function TripReservasClient({ tripId, reservations: initial = [],
                 </div>
               </div>
             );
-          })}
+          });
+          })()}
         </div>
       )}
 
       {vista === "presupuesto" && (
         <ReservasPresupuesto
-          reservations={reservations}
+          reservations={filtered}
           travelers={travelers}
           parseTravelerIds={parseTravelerIds}
           getCostForTraveler={getCostForTraveler}
